@@ -21,7 +21,7 @@ class ComTaxonomyControllerBehaviorRelationable extends KControllerBehaviorAbstr
         // from the taxonomy table.
         if(isset($context->data->parent) && isset($context->data->parent_table)) {
 
-            $taxonomy = $this->getService('com://admin/taxonomy.model.taxonomy')
+            $taxonomy = $this->getService('com://admin/taxonomy.model.taxonomies')
                 ->row($context->data->parent)
                 ->table($context->data->parent_table)
                 ->getItem();

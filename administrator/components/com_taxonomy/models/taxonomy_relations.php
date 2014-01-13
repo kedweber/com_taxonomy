@@ -17,8 +17,8 @@ class ComTaxonomyModelTaxonomy_relations extends ComDefaultModelDefault
         parent::__construct($config);
 
         $this->_state
-            ->insert('ancestor_id',     'int', null, true)
-            ->insert('descendant_id',   'int', null, true)
+            ->insert('ancestor_id',     'int')
+            ->insert('descendant_id',   'int')
         ;
     }
 
@@ -28,14 +28,14 @@ class ComTaxonomyModelTaxonomy_relations extends ComDefaultModelDefault
 
         parent::_buildQueryWhere($query);
 
-        if(is_numeric($state->ancestor_id)) {
-            $query->where('tbl.ancestor_id', '=', $state->ancestor_id);
-            $query->where('tbl.descendant_id', '!=', $state->ancestor_id);
+        if($state->ancestor_id) {
+            $query->where('tbl.ancestor_id', 'IN', $state->ancestor_id);
+            $query->where('tbl.descendant_id', 'NOT IN', $state->ancestor_id);
         }
 
-        if(is_numeric($state->descendant_id)) {
-            $query->where('tbl.descendant_id', '=', $state->descendant_id);
-            $query->where('tbl.ancestor_id', '!=', $state->descendant_id);
+        if($state->descendant_id) {
+            $query->where('tbl.descendant_id', 'IN', $state->descendant_id);
+            $query->where('tbl.ancestor_id', 'NOT IN', $state->descendant_id);
         }
     }
 }

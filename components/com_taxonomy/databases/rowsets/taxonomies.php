@@ -78,16 +78,14 @@ class ComTaxonomyDatabaseRowsetTaxonomies extends KDatabaseRowsetDefault
                     $row = $this->getService($identifier)->id($values['row'])->getItem();
                     $row->taxonomy_taxonomy_id = $values['id'];
                     $row->option = 'com_'.$parts[0];
-                    $row->view  = KInflector::singularize($parts[1]);
+                    $row->view  = $parts[1];
 
                     $cache->store(serialize($row->getData()), $key);
                 }
 
                 $this->_identity_column = 'taxonomy_taxonomy_id';
 
-                if($row->id) {
-                    $this->insert($row);
-                }
+                $this->insert($row);
             } catch (Exception $e) {
                 $options = array(
                     'data'   => $values,

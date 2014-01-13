@@ -16,7 +16,7 @@ class ComTaxonomyTemplateHelperBehavior extends ComDefaultTemplateHelperBehavior
         $html ='';
 
         if (!isset(self::$_loaded['jquery'])) {
-            $html .= $this->jquery();
+//            $html .= $this->jquery();
         }
 
         if (!isset(self::$_loaded['select2'])) {

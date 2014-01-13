@@ -100,11 +100,11 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $query  = $context->query;
 
         if($query) {
+            $query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
             $query->join('INNER', '#__taxonomy_taxonomies AS taxonomies', array(
                 'taxonomies.row = tbl.'.$table->getIdentityColumn().'',
                 'taxonomies.table = LOWER("'.strtoupper($table->getBase()).'")'
             ));
-            $query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
 
             $query->select('GROUP_CONCAT(DISTINCT(crumbs.ancestor_id) ORDER BY crumbs.level DESC SEPARATOR \',\') AS ancestors');
             $query->join('inner', '#__taxonomy_taxonomy_relations AS crumbs', 'crumbs.descendant_id = taxonomies.taxonomy_taxonomy_id');
@@ -127,7 +127,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         if ($context->data->type)       $data['type']       = $context->data->type;
         if ($context->data->parent_id)  $data['parent_id']  = $context->data->parent_id;
 
-        $taxonomy = $this->getService('com://admin/taxonomy.model.taxonomies')
+        $taxonomy = $this->getService('com://admin/taxonomy.model.taxonomy')
             ->row($context->data->id)
             ->table($context->caller->getBase())
             ->getItem();
@@ -196,7 +196,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
     protected function _beforeTableDelete(KCommandContext $context)
     {
-        $this->getService('com://admin/taxonomy.model.taxonomies')
+        $this->getService('com://admin/taxonomy.model.taxonomy')
              ->row($context->data->id)
              ->table($context->caller->getBase())
              ->getItem()

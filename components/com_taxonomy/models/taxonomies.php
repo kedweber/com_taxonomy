@@ -64,7 +64,7 @@ class ComTaxonomyModelTaxonomies extends ComTaxonomyModelNodes
             }
 
             if(is_array($state->type)) {
-                $query->where('tbl.type', 'IN', $state->type);
+                $query->where('tbl.type', 'IN', (array) $state->type);
             }
         }
 
