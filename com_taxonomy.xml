@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<extension type="component" version="2.5" method="upgrade">
+<extension type="component" version="3.0.0" method="upgrade" overwrite="true">
     <name>Taxonomy</name>
+    <identifier>com:cck</identifier>
     <author>Dave Li</author>
     <creationDate>October 2013</creationDate>
     <copyright>Copyright (C) 2013 Moyo Web Architects and Contributors. (http://www.moyoweb.nl)</copyright>
@@ -22,10 +23,10 @@
     </uninstall>
 
     <administration>
-        <files folder="admin">
-            <filename>dispatcher.php</filename>
-            <filename>taxonomy.php</filename>
-            <filename>taxonomy.xml</filename>
+        <files folder="administrator/components/com_taxonomy">
+            <file>dispatcher.php</file>
+            <file>taxonomy.php</file>
+
             <folder>controllers</folder>
             <folder>databases</folder>
             <folder>install</folder>
@@ -33,5 +34,12 @@
             <folder>templates</folder>
             <folder>views</folder>
         </files>
+
+        <menu>COM_CCK</menu>
+        <submenu>
+            <menu view="fieldsets">Fieldsets</menu>
+            <menu view="elements">Elements</menu>
+        </submenu>
+
     </administration>
 </extension>
