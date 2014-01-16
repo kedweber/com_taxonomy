@@ -99,7 +99,16 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $table  = $context->caller;
         $query  = $context->query;
 
-        if($query) {
+        $join_taxonomy = true;
+
+        //Check if the from table is the same as the current table.
+        foreach($query->from as $from) {
+            if (strpos($from, $table->getBase()) === false) {
+                $join_taxonomy = false;
+            }
+        }
+
+        if($query && $join_taxonomy) {
             $query->join('INNER', '#__taxonomy_taxonomies AS taxonomies', array(
                 'taxonomies.row = tbl.'.$table->getIdentityColumn().'',
                 'taxonomies.table = LOWER("'.strtoupper($table->getBase()).'")'
