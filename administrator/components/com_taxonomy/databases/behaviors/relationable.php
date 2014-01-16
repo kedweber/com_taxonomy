@@ -115,8 +115,8 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
             ));
             $query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
 
-            $query->select('GROUP_CONCAT(DISTINCT(crumbs.ancestor_id) ORDER BY crumbs.level DESC SEPARATOR \',\') AS ancestors');
-            $query->join('inner', '#__taxonomy_taxonomy_relations AS crumbs', 'crumbs.descendant_id = taxonomies.taxonomy_taxonomy_id');
+            $query->select('GROUP_CONCAT(DISTINCT(tc.ancestor_id) ORDER BY tc.level DESC SEPARATOR \',\') AS ancestors');
+            $query->join('inner', '#__taxonomy_taxonomy_relations AS tc', 'tc.descendant_id = taxonomies.taxonomy_taxonomy_id');
             $query->group('taxonomies.taxonomy_taxonomy_id');
         }
     }
