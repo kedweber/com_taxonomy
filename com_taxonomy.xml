@@ -22,6 +22,14 @@
         </sql>
     </uninstall>
 
+    <files folder="components/com_taxonomy">
+        <file>taxonomy.php</file>
+
+        <folder>databases</folder>
+        <folder>models</folder>
+        <folder>views</folder>
+    </files>
+
     <administration>
         <files folder="administrator/components/com_taxonomy">
             <file>dispatcher.php</file>
