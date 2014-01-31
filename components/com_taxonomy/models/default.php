@@ -9,6 +9,16 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
     {
         parent::__construct($config);
 
+        //Dynamic state injection based on relations.
+        if($this->getTable()->hasBehavior('relationable')) {
+            $relations = $this->getTable()->getBehavior('relationable')->getRelations();
+
+            foreach($relations as $relation) {
+                $this->_state->insert(KInflector::singularize($relation), 'raw');
+                $this->_state->insert(KInflector::pluralize($relation), 'raw');
+            }
+        }
+
         $this->_state
             ->insert('ancestors', 'raw')
         ;
@@ -45,6 +55,7 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
 
         parent::_buildQueryHaving($query);
 
+
         if(is_array($state->ancestors)) {
             $havings = array();
 
@@ -62,6 +73,43 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
             $having = implode(' ', $havings);
 
             $query->having($having);
+        }
+
+        if($this->getTable()->hasBehavior('relationable')) {
+            $relations = $this->getTable()->getBehavior('relationable')->getRelations();
+
+            $havings = array();
+
+            $i = 0;
+            foreach($relations as $relation) {
+                if($state->{KInflector::singularize($relation)}) {
+                    if($i === 0) {
+                        $havings[$i] = '(FIND_IN_SET('.$state->{KInflector::singularize($relation)}.', LOWER(ANCESTORS)))';
+                    } else {
+                        $havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTORS)))';
+                    }
+                    $i++;
+                }
+
+                if($state->{KInflector::pluralize($relation)}) {
+                    $havings = array();
+
+                    foreach($state->{KInflector::pluralize($relation)} as $value) {
+                        if($i === 0) {
+                            $havings[$i] = '(FIND_IN_SET('.$value.', LOWER(ANCESTORS)))';
+                        } else {
+                            $havings[$i] = 'AND (FIND_IN_SET('.$value.', LOWER(ANCESTORS)))';
+                        }
+                        $i++;
+                    }
+                }
+            }
+
+            $having = implode(' ', $havings);
+
+            if($having) {
+                $query->having($having);
+            }
         }
     }
 

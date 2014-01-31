@@ -1,5 +1,5 @@
 -- ----------------------------
---  Table structure for `keoxh_taxonomy_taxonomies`
+--  Table structure for `#__taxonomy_taxonomies`
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `#__taxonomy_taxonomies` (
   `taxonomy_taxonomy_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `#__taxonomy_taxonomies` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------
---  Table structure for `keoxh_taxonomy_taxonomy_relations`
+--  Table structure for `#__taxonomy_taxonomy_relations`
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `#__taxonomy_taxonomy_relations` (
   `ancestor_id` int(11) unsigned NOT NULL DEFAULT '0',
