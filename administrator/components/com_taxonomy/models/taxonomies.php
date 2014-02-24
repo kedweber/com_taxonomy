@@ -10,8 +10,8 @@ class ComTaxonomyModelTaxonomies extends ComTaxonomyModelNodes
         parent::__construct($config);
 
         $this->_state
-            ->insert('type'     , 'string')
-            ->insert('ids'      , 'string')
+            ->insert('type'				, 'string')
+            ->insert('ids'				, 'string')
         ;
     }
 

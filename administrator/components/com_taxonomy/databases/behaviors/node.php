@@ -107,7 +107,6 @@ class ComTaxonomyDatabaseBehaviorNode extends KDatabaseBehaviorAbstract
                 $this->getTable()->getDatabase()->execute(sprintf($query, $this->getTable()->getRelationTable(), $context->data->id, (int) $parent_id));
             } else {
                 $this->move($parent_id);
-//                $this->append($parent_id);
             }
         }
     }

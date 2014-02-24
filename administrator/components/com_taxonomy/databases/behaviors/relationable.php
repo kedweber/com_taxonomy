@@ -16,15 +16,6 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
     protected $_descendants;
 
-    protected function _initialize(KConfig $config)
-    {
-        $config->append(array(
-            'auto_mixin' => true,
-        ));
-
-        parent::_initialize($config);
-    }
-
     public function __construct(KConfig $config)
     {
         parent::__construct($config);
@@ -145,16 +136,16 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $taxonomy->save();
 
         //TODO: Make it possible to save relation both ways.
-        foreach($this->_ancestors as $ancestor) {
-            if(isset($context->data->{$ancestor})) {
-                $relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($ancestor))));
+        foreach($this->_ancestors as $name => $ancestor) {
+            if(isset($context->data->{$name})) {
+                $relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
 
                 if($relations->getIds('taxonomy_taxonomy_id')) {
                     $this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
                 }
 
-                if(KInflector::isPlural($ancestor)) {
-                    foreach($context->data->{$ancestor} as $relation) {
+                if(KInflector::isPlural($name)) {
+                    foreach($context->data->{$name} as $relation) {
                         if($relation) {
                             $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
 
@@ -162,8 +153,8 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
                         }
                     }
                 } else {
-                    if($context->data->{$ancestor}) {
-                        $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$ancestor})->getItem();
+                    if($context->data->{$name}) {
+                        $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
 
                         $taxonomy->append($row->id);
                     }
@@ -226,11 +217,17 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         return $key;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getRelations()
-    {
-        return $this->_ancestors;
-    }
+	/**
+	 * @return KConfig
+	 */
+	public function getRelations()
+	{
+		$config = new KConfig();
+		$config->append(array(
+			'ancestors' => $this->_ancestors,
+			'descendants' => $this->_descendants
+		));
+
+		return $config;
+	}
 }
