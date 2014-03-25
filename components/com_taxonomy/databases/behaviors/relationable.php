@@ -105,10 +105,6 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
                 'taxonomies.row = tbl.'.$table->getIdentityColumn().'',
                 'taxonomies.table = LOWER("'.strtoupper($table->getBase()).'")'
             ));
-
-            $query->select('GROUP_CONCAT(DISTINCT(crumbs.ancestor_id) ORDER BY crumbs.level DESC SEPARATOR \',\') AS ancestors');
-            $query->join('inner', '#__taxonomy_taxonomy_relations AS crumbs', 'crumbs.descendant_id = taxonomies.taxonomy_taxonomy_id');
-            $query->group('taxonomies.taxonomy_taxonomy_id');
         }
     }
 
@@ -116,22 +112,22 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 	{
 		if($context->data instanceof KDatabaseRowsetDefault) {
 			foreach($context->data as $row) {
-				$test = json_decode($row->parentz);
+				$ancestors = json_decode($row->parentz);
 
 				foreach($this->_ancestors as $key => $ancestor) {
-					if($test->{$key}) {
-						$row->{$key} = array_values($this->getService($ancestor['identifier'])->id($test->{$key})->getList()->toArray());
+					if($ancestors->{$key}) {
+						$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
 					}
 				}
 			}
 		}
 
 		if($context->data instanceof KDatabaseRowDefault) {
-			$test = json_decode($context->data->parentz);
+			$ancestors = json_decode($context->data->parentz);
 
 			foreach($this->_ancestors as $key => $ancestor) {
-				if($test->{$key}) {
-					$context->data->{$key} = array_values($this->getService($ancestor['identifier'])->id($test->{$key})->getList()->toArray());
+				if($ancestors->{$key}) {
+					$context->data->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
 				}
 			}
 		}
