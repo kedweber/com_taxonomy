@@ -12,16 +12,21 @@ defined('KOOWA') or die('Protected resource');
 
 class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 {
-    protected $_ancestors;
+	protected  $_ancestors;
 
-    protected $_descendants;
+	protected $_descendants;
 
     public function __construct(KConfig $config)
     {
-        parent::__construct($config);
+		if(isset($config->ancestors)) {
+			$this->_ancestors = $config->ancestors;
+		}
 
-        $this->_ancestors   = $config->ancestors;
-        $this->_descendants = $config->descendants;
+		if(isset($config->descendants)) {
+			$this->_descendants = $config->descendants;
+		}
+
+		parent::__construct($config);
     }
 
     public function getRelation($config = array())
@@ -106,9 +111,11 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
             ));
             $query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
 
-            $query->select('GROUP_CONCAT(DISTINCT(tc.ancestor_id) ORDER BY tc.level DESC SEPARATOR \',\') AS ancestors');
-            $query->join('inner', '#__taxonomy_taxonomy_relations AS tc', 'tc.descendant_id = taxonomies.taxonomy_taxonomy_id');
-            $query->group('taxonomies.taxonomy_taxonomy_id');
+//            $query->select('GROUP_CONCAT(DISTINCT(as.ancestor_id) ORDER BY as.level DESC SEPARATOR \',\') AS ancestors');
+//            $query->select('GROUP_CONCAT(DISTINCT(ds.descendant_id) ORDER BY as.level DESC SEPARATOR \',\') AS descendants');
+//            $query->join('inner', '#__taxonomy_taxonomy_relations AS as', 'as.descendant_id = taxonomies.taxonomy_taxonomy_id');
+//            $query->join('inner', '#__taxonomy_taxonomy_relations AS ds', 'ds.ancestor_id = taxonomies.taxonomy_taxonomy_id');
+//            $query->group('taxonomies.taxonomy_taxonomy_id');
         }
     }
 
@@ -136,57 +143,71 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $taxonomy->save();
 
         //TODO: Make it possible to save relation both ways.
-        foreach($this->_ancestors as $name => $ancestor) {
-            if(isset($context->data->{$name})) {
-                $relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
+		if($this->_ancestors) {
+			foreach($this->_ancestors as $name => $ancestor) {
+				if(isset($context->data->{$name})) {
+					$relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
 
-                if($relations->getIds('taxonomy_taxonomy_id')) {
-                    $this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
-                }
+					if($relations->getIds('taxonomy_taxonomy_id')) {
+						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
+					}
 
-                if(KInflector::isPlural($name)) {
-                    foreach($context->data->{$name} as $relation) {
-                        if($relation) {
-                            $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
+					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
+						foreach($context->data->{$name} as $relation) {
+							if(is_numeric($relation)) {
+								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
 
-                            $taxonomy->append($row->id);
-                        }
-                    }
-                } else {
-                    if($context->data->{$name}) {
-                        $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
+								$taxonomy->append($row->id);
+							} else {
+								//TODO: Check if array or object convert etc.
+								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
 
-                        $taxonomy->append($row->id);
-                    }
-                }
-            }
-        }
+								$taxonomy->append($row->id);
+							}
+						}
+					} else {
+						if($context->data->{$name}) {
+							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
 
-        foreach($this->_descendants as $descendant) {
-            if(isset($context->data->{$descendant})) {
-                $relations = $taxonomy->getDescendants(array('filter' => array('type' => KInflector::singularize($descendant))));
+							$taxonomy->append($row->id);
+						}
+					}
+				}
+			}
+		}
 
-                if($relations->getIds('taxonomy_taxonomy_id')) {
-                    $this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($taxonomy->id)->descendant_id($relations->getIds('taxonomy_taxonomy_id'))->getList()->delete();
-                }
+		if($this->_descendants) {
+			foreach($this->_descendants as $name => $ancestor) {
+				if(isset($context->data->{$name})) {
+					$relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
 
-                if(KInflector::isPlural($descendant)) {
-                    foreach($context->data->{$descendant} as $relation) {
-                        if($relation) {
-                            $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
+					if($relations->getIds('taxonomy_taxonomy_id')) {
+						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
+					}
 
-                            $row->append($taxonomy->id);
-                        }
-                    }
-                } else {
-                    if($context->data->{$descendant}) {
-                        $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$descendant})->getItem();
+					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
+						foreach($context->data->{$name} as $relation) {
+							if(is_numeric($relation)) {
+								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
 
-                        $row->append($taxonomy->id);
-                    }
-                }
-            }
-        }
+								$row->append($taxonomy->id);
+							} else {
+								//TODO: Check if array or object convert etc.
+								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
+
+								$row->append($taxonomy->id);
+							}
+						}
+					} else {
+						if($context->data->{$name}) {
+							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
+
+							$row->append($taxonomy->id);
+						}
+					}
+				}
+			}
+		}
     }
 
     protected function _afterTableUpdate(KCommandContext $context)

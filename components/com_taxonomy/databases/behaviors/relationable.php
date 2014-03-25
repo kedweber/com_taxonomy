@@ -112,97 +112,30 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         }
     }
 
-    protected function _afterTableInsert(KCommandContext $context)
-    {
-        $identifier = clone $this->getMixer()->getIdentifier();
+	protected function _afterTableSelect(KCommandContext $context)
+	{
+		if($context->data instanceof KDatabaseRowsetDefault) {
+			foreach($context->data as $row) {
+				$test = json_decode($row->parentz);
 
-        //Fix for identity columns that are none incremental.
-        $context->data->id = $context->data->id ? $context->data->id : $context->data->{$identifier->package.'_'.$identifier->name.'_id'};
+				foreach($this->_ancestors as $key => $ancestor) {
+					if($test->{$key}) {
+						$row->{$key} = array_values($this->getService($ancestor['identifier'])->id($test->{$key})->getList()->toArray());
+					}
+				}
+			}
+		}
 
-        $data = array(
-            'row'       => $context->data->id,
-            'table'     => $context->caller->getBase(),
-        );
+		if($context->data instanceof KDatabaseRowDefault) {
+			$test = json_decode($context->data->parentz);
 
-        if ($context->data->type)       $data['type']       = $context->data->type;
-        if ($context->data->parent_id)  $data['parent_id']  = $context->data->parent_id;
-
-        $taxonomy = $this->getService('com://admin/taxonomy.model.taxonomy')
-            ->row($context->data->id)
-            ->table($context->caller->getBase())
-            ->getItem();
-
-        $taxonomy->setData($data);
-        $taxonomy->save();
-
-        //TODO: Make it possible to save relation both ways.
-        foreach($this->_ancestors as $ancestor) {
-            if(isset($context->data->{$ancestor})) {
-                $relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($ancestor))));
-
-                if($relations->getIds('taxonomy_taxonomy_id')) {
-                    $this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
-                }
-
-                if(KInflector::isPlural($ancestor)) {
-                    foreach($context->data->{$ancestor} as $relation) {
-                        if($relation) {
-                            $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
-
-                            $taxonomy->append($row->id);
-                        }
-                    }
-                } else {
-                    if($context->data->{$ancestor}) {
-                        $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$ancestor})->getItem();
-
-                        $taxonomy->append($row->id);
-                    }
-                }
-            }
-        }
-
-        foreach($this->_descendants as $descendant) {
-            if(isset($context->data->{$descendant})) {
-                $relations = $taxonomy->getDescendants(array('filter' => array('type' => KInflector::singularize($descendant))));
-
-                if($relations->getIds('taxonomy_taxonomy_id')) {
-                    $this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($taxonomy->id)->descendant_id($relations->getIds('taxonomy_taxonomy_id'))->getList()->delete();
-                }
-
-                if(KInflector::isPlural($descendant)) {
-                    foreach($context->data->{$descendant} as $relation) {
-                        if($relation) {
-                            $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
-
-                            $row->append($taxonomy->id);
-                        }
-                    }
-                } else {
-                    if($context->data->{$descendant}) {
-                        $row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$descendant})->getItem();
-
-                        $row->append($taxonomy->id);
-                    }
-                }
-            }
-        }
-    }
-
-    protected function _afterTableUpdate(KCommandContext $context)
-    {
-        $this->_afterTableInsert($context);
-    }
-
-    protected function _beforeTableDelete(KCommandContext $context)
-    {
-        $this->getService('com://admin/taxonomy.model.taxonomy')
-             ->row($context->data->id)
-             ->table($context->caller->getBase())
-             ->getItem()
-             ->delete();
-    }
-
+			foreach($this->_ancestors as $key => $ancestor) {
+				if($test->{$key}) {
+					$context->data->{$key} = array_values($this->getService($ancestor['identifier'])->id($test->{$key})->getList()->toArray());
+				}
+			}
+		}
+	}
     /**
      * Generate a cache key
      *

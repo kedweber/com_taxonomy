@@ -15,8 +15,10 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
 
 			foreach($relations as $children) {
 				foreach($children as $name => $relation) {
-					$this->_state->insert(KInflector::singularize($name), 'raw');
-					$this->_state->insert(KInflector::pluralize($name), 'raw');
+					if(KInflector::isPlural($name)) {
+						$this->_state->insert($name, 'raw');
+					}
+					$this->_state->insert(KInflector::singularize($name), 'int');
 				}
 			}
 		}

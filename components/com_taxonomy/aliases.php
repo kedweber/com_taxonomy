@@ -14,12 +14,8 @@ class ComTaxonomyAliases extends KObject
     public function setAliases()
     {
         if (!$this->_loaded) {
-			$loader = KService::get('koowa:loader');
-
-			$loader->loadIdentifier('com://admin/taxonomy.model.default');
-
             $maps = array(
-//                'com://site/taxonomy.model.default'	    			=> 'com://admin/taxonomy.model.default',
+                'com://site/taxonomy.model.default'	    			=> 'com://admin/taxonomy.model.default',
                 'com://site/taxonomy.model.nodes'	     			=> 'com://admin/taxonomy.model.nodes',
                 'com://site/taxonomy.model.taxonomies'		     	=> 'com://admin/taxonomy.model.taxonomies',
 				'com://site/taxonomy.database.rows.default'	     	=> 'com://admin/taxonomy.database.rows.default',

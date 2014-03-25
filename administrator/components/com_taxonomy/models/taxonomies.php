@@ -30,23 +30,27 @@ class ComTaxonomyModelTaxonomies extends ComTaxonomyModelNodes
             $prefix = $iso_code.'_';
         }
 
-        if(is_array($state->type)) {
-            $subquery = '(';
-            $i = 1;
-            foreach($state->type as $type) {
-                $subquery .='SELECT '.KInflector::pluralize($type).'_'.KInflector::singularize($type).'_id AS id, LOWER("'.strtoupper(KInflector::pluralize($type)).'_'.strtoupper(KInflector::pluralize($type)).'") AS test FROM #__'.$prefix.KInflector::pluralize($type).'_'.KInflector::pluralize($type).' AS '.KInflector::pluralize($type).'
+		if(is_array($state->type)) {
+			$subquery = '(';
+			$i = 1;
+			foreach($state->type as $type) {
+				$subquery .='SELECT '.KInflector::pluralize($type).'_'.KInflector::singularize($type).'_id AS id, LOWER("'.strtoupper(KInflector::pluralize($type)).'_'.strtoupper(KInflector::pluralize($type)).'") AS test FROM #__'.$prefix.KInflector::pluralize($type).'_'.KInflector::pluralize($type).' AS '.KInflector::pluralize($type).'
                 WHERE enabled = 1 AND frontpage = 1';
-                if($i < count($state->type)) {
-                    $subquery .= ' UNION ALL ';
-                }
-                $i++;
-            }
-            $subquery .= ')';
+				if(KInflector::singularize($type) == 'event') {
+					$subquery .=' AND start_date >= CURDATE()';
+				}
+				if($i < count($state->type)) {
+					$subquery .= ' UNION ALL ';
+				}
+				$i++;
+			}
+			$subquery .= ')';
 
-            $query->join('INNER', $subquery .' AS b', array(
-                'tbl.row = b.id AND tbl.table = b.test',
-            ));
-        }
+			$query->join[]=array(
+				'type' => 'INNER',
+				'table' => $subquery. 'AS b',
+				'condition' => array('tbl.row = b.id AND tbl.table = b.test'));
+		}
     }
 
     /**
