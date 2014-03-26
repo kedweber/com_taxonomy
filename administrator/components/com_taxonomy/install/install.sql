@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS `#__taxonomy_taxonomies` (
   `uuid` char(36) NOT NULL,
   `row` int(11) NOT NULL,
   `table` varchar(255) NOT NULL,
+  `ancestors` text NOT NULL,
+  `descendants` text NOT NULL,
   `type` varchar(255) NOT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT '1',
   `ordering` int(11) DEFAULT NULL,
@@ -17,7 +19,8 @@ CREATE TABLE IF NOT EXISTS `#__taxonomy_taxonomies` (
   `locked_by` bigint(20) NOT NULL DEFAULT '0',
   PRIMARY KEY (`taxonomy_taxonomy_id`),
   UNIQUE KEY `uuid` (`uuid`),
-  UNIQUE KEY `composite_key` (`row`,`table`)
+  UNIQUE KEY `composite_key` (`row`,`table`),
+  KEY `type` (`type`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------

@@ -96,34 +96,51 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
      */
     protected function _beforeTableSelect(KCommandContext $context)
     {
-        $table  = $context->caller;
-        $query  = $context->query;
+		$table  = $context->caller;
+		$query  = $context->query;
 
-        if($query) {
-            $query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
-            $query->join('INNER', '#__taxonomy_taxonomies AS taxonomies', array(
-                'taxonomies.row = tbl.'.$table->getIdentityColumn().'',
-                'taxonomies.table = LOWER("'.strtoupper($table->getBase()).'")'
-            ));
-        }
+		$join_taxonomy = true;
+
+		//Check if the from table is the same as the current table.
+		foreach($query->from as $from) {
+			if (strpos($from, $table->getBase()) === false) {
+				$join_taxonomy = false;
+			}
+		}
+
+		if($query && $join_taxonomy) {
+			$query->join('INNER', '#__taxonomy_taxonomies AS taxonomies', array(
+				'taxonomies.row = tbl.'.$table->getIdentityColumn().'',
+				'taxonomies.table = LOWER("'.strtoupper($table->getBase()).'")'
+			));
+			$query->select('taxonomies.ancestors AS ancestors');
+			$query->select('taxonomies.descendants AS descendants');
+			$query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
+
+            $query->select('GROUP_CONCAT(DISTINCT(as.ancestor_id) ORDER BY as.level DESC SEPARATOR \',\') AS ancestor_ids');
+            $query->select('GROUP_CONCAT(DISTINCT(ds.descendant_id) ORDER BY as.level DESC SEPARATOR \',\') AS descendant_ids');
+            $query->join('inner', '#__taxonomy_taxonomy_relations AS as', 'as.descendant_id = taxonomies.taxonomy_taxonomy_id');
+            $query->join('inner', '#__taxonomy_taxonomy_relations AS ds', 'ds.ancestor_id = taxonomies.taxonomy_taxonomy_id');
+            $query->group('taxonomies.taxonomy_taxonomy_id');
+		}
     }
 
 	protected function _afterTableSelect(KCommandContext $context)
 	{
-		if($context->data instanceof KDatabaseRowsetDefault) {
-			foreach($context->data as $row) {
-				$ancestors = json_decode($row->parentz);
-
-				foreach($this->_ancestors as $key => $ancestor) {
-					if($ancestors->{$key}) {
-						$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
-					}
-				}
-			}
-		}
+//		if($context->data instanceof KDatabaseRowsetDefault) {
+//			foreach($context->data as $row) {
+//				$ancestors = json_decode($row->ancestors);
+//
+//				foreach($this->_ancestors as $key => $ancestor) {
+//					if($ancestors->{$key}) {
+//						$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
+//					}
+//				}
+//			}
+//		}
 
 		if($context->data instanceof KDatabaseRowDefault) {
-			$ancestors = json_decode($context->data->parentz);
+			$ancestors = json_decode($context->data->ancestors);
 
 			foreach($this->_ancestors as $key => $ancestor) {
 				if($ancestors->{$key}) {
@@ -131,6 +148,33 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 				}
 			}
 		}
+
+//		if($context->data instanceof KDatabaseRowsetDefault) {
+//			foreach($context->data as $row) {
+//				foreach($this->_ancestors as $name => $ancestor) {
+//					$taxonomy = $this->getService('com://admin/taxonomy.model.taxonomies')->id($row->taxonomy_taxonomy_id)->getItem();
+//
+//					$ids = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))))->getIds();
+//
+//					if($ids) {
+//						$row->{$name} = $this->getService($ancestor['identifier'])->id($ids)->getList();
+//					}
+//				}
+//			}
+//		}
+
+//		if($context->data instanceof KDatabaseRowDefault) {
+//			foreach($this->_ancestors as $name => $ancestor) {
+//
+//				$taxonomy = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->taxonomy_taxonomy_id)->getItem();
+//
+//				$ids = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))))->getIds();
+//
+//				if($ids) {
+//					$context->data->{$name} = $this->getService($ancestor['identifier'])->id($ids)->getList();
+//				}
+//			}
+//		}
 	}
     /**
      * Generate a cache key

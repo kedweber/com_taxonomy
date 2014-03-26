@@ -144,6 +144,8 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
         //TODO: Make it possible to save relation both ways.
 		if($this->_ancestors) {
+			$ancestors = array();
+
 			foreach($this->_ancestors as $name => $ancestor) {
 				if(isset($context->data->{$name})) {
 					$relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
@@ -156,7 +158,6 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 						foreach($context->data->{$name} as $relation) {
 							if(is_numeric($relation)) {
 								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
-
 								$taxonomy->append($row->id);
 							} else {
 								//TODO: Check if array or object convert etc.
@@ -164,12 +165,16 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
 								$taxonomy->append($row->id);
 							}
+
+							$ancestors[$name][] = $row->row;
 						}
 					} else {
 						if($context->data->{$name}) {
 							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
 
 							$taxonomy->append($row->id);
+
+							$ancestors[$name] = $row->row;
 						}
 					}
 				}
@@ -177,6 +182,8 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
 
 		if($this->_descendants) {
+			$descendants = array();
+
 			foreach($this->_descendants as $name => $ancestor) {
 				if(isset($context->data->{$name})) {
 					$relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
@@ -197,17 +204,28 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
 								$row->append($taxonomy->id);
 							}
+
+							$descendants[$name][] = $row->row;
 						}
 					} else {
 						if($context->data->{$name}) {
 							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
 
 							$row->append($taxonomy->id);
+
+							$descendants[$name] = $row->row;
 						}
 					}
 				}
 			}
 		}
+
+		$taxonomy->setData(array(
+			'ancestors' =>  json_encode($ancestors, JSON_HEX_QUOT | JSON_HEX_TAG),
+			'descendants' =>  json_encode($descendants, JSON_HEX_QUOT | JSON_HEX_TAG)
+		));
+
+		$taxonomy->save();
     }
 
     protected function _afterTableUpdate(KCommandContext $context)

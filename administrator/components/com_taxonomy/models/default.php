@@ -67,9 +67,9 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
 			foreach($state->ancestors as $ancestor)
 			{
 				if($i === 0) {
-					$havings[$i] = '(FIND_IN_SET('.$ancestor.', LOWER(ANCESTORS)))';
+					$havings[$i] = '(FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
 				} else {
-					$havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTORS)))';
+					$havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
 				}
 				$i++;
 			}
@@ -89,9 +89,9 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
 			foreach($relations as $relation) {
 				if($state->{KInflector::singularize($relation)}) {
 					if($i === 0) {
-						$havings[$i] = '(FIND_IN_SET('.$state->{KInflector::singularize($relation)}.', LOWER(ANCESTORS)))';
+						$havings[$i] = '(FIND_IN_SET('.$state->{KInflector::singularize($relation)}.', LOWER(ANCESTOR_IDS)))';
 					} else {
-						$havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTORS)))';
+						$havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
 					}
 					$i++;
 				}
@@ -101,9 +101,9 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
 
 					foreach($state->{KInflector::pluralize($relation)} as $value) {
 						if($i === 0) {
-							$havings[$i] = '(FIND_IN_SET('.$value.', LOWER(ANCESTORS)))';
+							$havings[$i] = '(FIND_IN_SET('.$value.', LOWER(ANCESTOR_IDS)))';
 						} else {
-							$havings[$i] = 'AND (FIND_IN_SET('.$value.', LOWER(ANCESTORS)))';
+							$havings[$i] = 'AND (FIND_IN_SET('.$value.', LOWER(ANCESTOR_IDS)))';
 						}
 						$i++;
 					}
