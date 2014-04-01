@@ -154,6 +154,21 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 					$context->data->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
 				}
 			}
+
+			$descendants = json_decode($context->data->descendants);
+
+			foreach($this->_descendants as $key => $descendant) {
+				if(is_object($descendants->{$key})) {
+
+					$identifier = new KServiceIdentifier($descendant->identifier);
+					$identifier->path = array('database', 'row');
+					$identifier->name = KInflector::singularize($identifier->name);
+
+					$context->data->{$key} = $this->getService($identifier)->setData($descendant->{$key})->toArray();
+				} elseif($descendants->{$key}) {
+					$context->data->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
+				}
+			}
 		}
 
 //		if($context->data instanceof KDatabaseRowsetDefault) {
