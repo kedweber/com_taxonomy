@@ -39,7 +39,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
             ->type($this->type)
             ->getItem();
 
-        return $relation->getDescendants($config);
+        return $relation->getRelatives($config);
     }
 
     public function getAncestors($config = array())
@@ -109,6 +109,9 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
                 'taxonomies.row = tbl.'.$table->getIdentityColumn().'',
                 'taxonomies.table = LOWER("'.strtoupper($table->getBase()).'")'
             ));
+
+			$query->select('taxonomies.ancestors AS ancestors');
+			$query->select('taxonomies.descendants AS descendants');
             $query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
 
 //            $query->select('GROUP_CONCAT(DISTINCT(as.ancestor_id) ORDER BY as.level DESC SEPARATOR \',\') AS ancestors');
@@ -142,10 +145,10 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $taxonomy->setData($data);
         $taxonomy->save();
 
-        //TODO: Make it possible to save relation both ways.
-		if($this->_ancestors) {
-			$ancestors = array();
+		$ancestors		= array();
+		$descendants	= array();
 
+		if($this->_ancestors) {
 			foreach($this->_ancestors as $name => $ancestor) {
 				if(isset($context->data->{$name})) {
 					$relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
@@ -182,8 +185,6 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
 
 		if($this->_descendants) {
-			$descendants = array();
-
 			foreach($this->_descendants as $name => $ancestor) {
 				if(isset($context->data->{$name})) {
 					$relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
@@ -220,10 +221,13 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 			}
 		}
 
-		$taxonomy->setData(array(
-			'ancestors' =>  json_encode($ancestors, JSON_HEX_QUOT | JSON_HEX_TAG),
-			'descendants' =>  json_encode($descendants, JSON_HEX_QUOT | JSON_HEX_TAG)
-		));
+		if($ancestors) {
+			$taxonomy->ancestors = json_encode($ancestors);
+		}
+
+		if($descendants) {
+			$taxonomy->descendants = json_encode($descendants);
+		}
 
 		$taxonomy->save();
     }

@@ -143,7 +143,14 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 			$ancestors = json_decode($context->data->ancestors);
 
 			foreach($this->_ancestors as $key => $ancestor) {
-				if($ancestors->{$key}) {
+				if(is_object($ancestors->{$key})) {
+
+					$identifier = new KServiceIdentifier($ancestor->identifier);
+					$identifier->path = array('database', 'row');
+					$identifier->name = KInflector::singularize($identifier->name);
+
+					$context->data->{$key} = $this->getService($identifier)->setData($ancestors->{$key})->toArray();
+				} elseif($ancestors->{$key}) {
 					$context->data->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
 				}
 			}

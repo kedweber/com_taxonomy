@@ -43,10 +43,6 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
 				'taxonomies.table = LOWER("'.strtoupper($this->getTable()->getBase()).'")'
 			));
 			$query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
-
-			$query->select('GROUP_CONCAT(DISTINCT(crumbs.ancestor_id) ORDER BY crumbs.level DESC SEPARATOR \',\') AS ancestors');
-			$query->join('inner', '#__taxonomy_taxonomy_relations AS crumbs', 'crumbs.descendant_id = taxonomies.taxonomy_taxonomy_id');
-			$query->group('taxonomies.taxonomy_taxonomy_id');
 		}
 	}
 
@@ -55,67 +51,67 @@ class ComTaxonomyModelDefault extends ComDefaultModelDefault
 	 */
 	protected function _buildQueryHaving(KDatabaseQuery $query)
 	{
-		$state = $this->_state;
-
-		parent::_buildQueryHaving($query);
-
-
-		if(is_array($state->ancestors)) {
-			$havings = array();
-
-			$i = 0;
-			foreach($state->ancestors as $ancestor)
-			{
-				if($i === 0) {
-					$havings[$i] = '(FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
-				} else {
-					$havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
-				}
-				$i++;
-			}
-
-			$having = implode(' ', $havings);
-
-			$query->having($having);
-		}
-
-		if($this->getTable()->hasBehavior('relationable')) {
-			$relations = $this->getTable()->getBehavior('relationable')->getRelations();
-
-			$havings = array();
-
-			$i = 0;
-			//TODO: Check and implement new relations system.
-			foreach($relations as $relation) {
-				if($state->{KInflector::singularize($relation)}) {
-					if($i === 0) {
-						$havings[$i] = '(FIND_IN_SET('.$state->{KInflector::singularize($relation)}.', LOWER(ANCESTOR_IDS)))';
-					} else {
-						$havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
-					}
-					$i++;
-				}
-
-				if($state->{KInflector::pluralize($relation)}) {
-					$havings = array();
-
-					foreach($state->{KInflector::pluralize($relation)} as $value) {
-						if($i === 0) {
-							$havings[$i] = '(FIND_IN_SET('.$value.', LOWER(ANCESTOR_IDS)))';
-						} else {
-							$havings[$i] = 'AND (FIND_IN_SET('.$value.', LOWER(ANCESTOR_IDS)))';
-						}
-						$i++;
-					}
-				}
-			}
-
-			$having = implode(' ', $havings);
-
-			if($having) {
-				$query->having($having);
-			}
-		}
+//		$state = $this->_state;
+//
+//		parent::_buildQueryHaving($query);
+//
+//
+//		if(is_array($state->ancestors)) {
+//			$havings = array();
+//
+//			$i = 0;
+//			foreach($state->ancestors as $ancestor)
+//			{
+//				if($i === 0) {
+//					$havings[$i] = '(FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
+//				} else {
+//					$havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
+//				}
+//				$i++;
+//			}
+//
+//			$having = implode(' ', $havings);
+//
+//			$query->having($having);
+//		}
+//
+//		if($this->getTable()->hasBehavior('relationable')) {
+//			$relations = $this->getTable()->getBehavior('relationable')->getRelations();
+//
+//			$havings = array();
+//
+//			$i = 0;
+//			//TODO: Check and implement new relations system.
+//			foreach($relations as $relation) {
+//				if($state->{KInflector::singularize($relation)}) {
+//					if($i === 0) {
+//						$havings[$i] = '(FIND_IN_SET('.$state->{KInflector::singularize($relation)}.', LOWER(ANCESTOR_IDS)))';
+//					} else {
+//						$havings[$i] = 'AND (FIND_IN_SET('.$ancestor.', LOWER(ANCESTOR_IDS)))';
+//					}
+//					$i++;
+//				}
+//
+//				if($state->{KInflector::pluralize($relation)}) {
+//					$havings = array();
+//
+//					foreach($state->{KInflector::pluralize($relation)} as $value) {
+//						if($i === 0) {
+//							$havings[$i] = '(FIND_IN_SET('.$value.', LOWER(ANCESTOR_IDS)))';
+//						} else {
+//							$havings[$i] = 'AND (FIND_IN_SET('.$value.', LOWER(ANCESTOR_IDS)))';
+//						}
+//						$i++;
+//					}
+//				}
+//			}
+//
+//			$having = implode(' ', $havings);
+//
+//			if($having) {
+//				$query->having($having);
+//			}
+//		}
 	}
 
 	/**
