@@ -12,7 +12,7 @@ defined('KOOWA') or die('Protected resource');
 
 class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 {
-	protected  $_ancestors;
+	protected $_ancestors;
 
 	protected $_descendants;
 
@@ -113,14 +113,101 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 			$query->select('taxonomies.ancestors AS ancestors');
 			$query->select('taxonomies.descendants AS descendants');
             $query->select('taxonomies.taxonomy_taxonomy_id AS taxonomy_taxonomy_id');
-
-//            $query->select('GROUP_CONCAT(DISTINCT(as.ancestor_id) ORDER BY as.level DESC SEPARATOR \',\') AS ancestors');
-//            $query->select('GROUP_CONCAT(DISTINCT(ds.descendant_id) ORDER BY as.level DESC SEPARATOR \',\') AS descendants');
-//            $query->join('inner', '#__taxonomy_taxonomy_relations AS as', 'as.descendant_id = taxonomies.taxonomy_taxonomy_id');
-//            $query->join('inner', '#__taxonomy_taxonomy_relations AS ds', 'ds.ancestor_id = taxonomies.taxonomy_taxonomy_id');
-//            $query->group('taxonomies.taxonomy_taxonomy_id');
         }
+
+		if($query && !$query->count) {
+			foreach($query->order as $order) {
+				if($this->getRelations()->ancestors instanceof KConfig) {
+					$columns = array_keys($this->getRelations()->ancestors->toArray());
+
+					if(in_array(str_replace('tbl.', null, $order['column']), $columns)) {
+						$query->select('SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1) AS '.$order['column']);
+						//TODO: Do we need to filter no values?
+						$query->having($order['column'].' > ""');
+					}
+				}
+
+				if($this->getRelations()->descendants instanceof KConfig) {
+					$columns = array_keys($this->getRelations()->descendants->toArray());
+
+					if(in_array(str_replace('tbl.', null, $order['column']), $columns)) {
+						$query->select('SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1) AS '.$order['column']);
+						//TODO: Do we need to filter no values?
+						$query->having($order['column'].' > ""');
+					}
+				}
+			}
+		}
     }
+
+	protected function _afterTableSelect(KCommandContext $context)
+	{
+		//TODO:: Dont fire on insert / update / delete.
+		if($context->data instanceof KDatabaseRowsetDefault) {
+			foreach($context->data as $row) {
+				if($this->_ancestors instanceof KConfig) {
+					$ancestors = json_decode($row->ancestors);
+
+					foreach($this->_ancestors as $key => $ancestor) {
+						if($ancestors->{$key}) {
+							if(KInflector::isSingular($key)) {
+								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getItem();
+							} else {
+								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
+							}
+						}
+					}
+				}
+
+				if($this->_descendants instanceof KConfig) {
+					$descendants = json_decode($row->descendants);
+
+					foreach($this->_descendants as $key => $descendant) {
+						if($ancestors->{$key}) {
+							if(KInflector::isSingular($key)) {
+								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getItem();
+							} else {
+								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
+							}
+						}
+					}
+				}
+			}
+		}
+
+//			if($context->data instanceof KDatabaseRowDefault) {
+//				$ancestors = json_decode($context->data->ancestors);
+//
+//				foreach($this->_ancestors as $key => $ancestor) {
+//					if(is_object($ancestors->{$key})) {
+//
+//						$identifier = new KServiceIdentifier($ancestor->identifier);
+//						$identifier->path = array('database', 'row');
+//						$identifier->name = KInflector::singularize($identifier->name);
+//
+//						$context->data->{$key} = $this->getService($identifier)->setData($ancestors->{$key})->toArray();
+//					} elseif($ancestors->{$key}) {
+//						$context->data->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
+//					}
+//				}
+//
+//				$descendants = json_decode($context->data->descendants);
+//
+//				foreach($this->_descendants as $key => $descendant) {
+//
+//					if(is_object($descendants->{$key})) {
+//
+//						$identifier = new KServiceIdentifier($descendant->identifier);
+//						$identifier->path = array('database', 'row');
+//						$identifier->name = KInflector::singularize($identifier->name);
+//
+//						$context->data->{$key} = $this->getService($identifier)->setData($descendant->{$key})->toArray();
+//					} elseif($descendants->{$key}) {
+//						$context->data->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
+//					}
+//				}
+//			}
+	}
 
     protected function _afterTableInsert(KCommandContext $context)
     {
