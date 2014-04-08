@@ -35,6 +35,10 @@ class ComTaxonomyTemplateHelperListbox extends ComDefaultTemplateHelperListbox
 		    }
 	    }
 
+		if($selected && $config->attribs['disabled']) {
+			unset($config->attribs['disabled']);
+		}
+
         $config->append(array(
             'model'    => 'taxonomies',
             'name'     => 'taxonomy_taxonomy_id',
