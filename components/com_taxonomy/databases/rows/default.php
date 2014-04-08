@@ -41,7 +41,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 		if(!empty($this->ancestors) && empty($result)) {
 			$ancestors = json_decode($this->ancestors, true);
 
-			if(array_key_exists($column, $ancestors)) {
+			if(is_array($ancestors) && array_key_exists($column, $ancestors)) {
 				$result = $this->getRelation('ancestors', $column);
 
 				$this->setData(array(
@@ -55,7 +55,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 		if(!empty($this->descendants) && empty($result)) {
 			$descendants = json_decode($this->descendants, true);
 
-			if(array_key_exists($column, $descendants)) {
+			if(is_array($descendants) && array_key_exists($column, $descendants)) {
 				$result = $this->getRelation('descendants', $column);
 
 				$this->setData(array(
