@@ -3,47 +3,76 @@
 class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 {
 	/**
-	 * @param $data
-	 * @param bool $modified
-	 * @return $this|KDatabaseRowAbstract
+	 * @param $column
+	 * @return null
 	 */
-	public function setData($data, $modified = true)
+	public function getRelation($type, $column)
 	{
-		parent::setData($data, $modified);
+		$relations = $this->getRelations();
 
-		if(!$this->cached) {
-			$table = $this->getTable();
+		$taxonomies = json_decode($this->{$type});
 
-			if($table instanceof KDatabaseTableDefault) {
-				$relations = $table->getBehavior('relationable')->getRelations();
+		if(KInflector::isSingular($column)) {
+			return $this->getService($relations->{$type}->{$column}->identifier)->id($taxonomies->{$column})->getItem();
+		}
 
-				if(isset($relations)) {
-					foreach($relations as $type => $children) {
-						if(isset($children)) {
-							foreach($children as $name => $relation) {
-								if($this->isRelationable() && !$this->{$name}) {
-									if($ids = explode(',', $this->{$type})) {
-										$model = $this->getService($relation->identifier);
-										$state = $model->getState();
+		if(KInflector::isPlural($column)) {
+			error_log($column.'  '.$relations->{$type}->{$column}->identifier);
 
-										if($relation->state) {
-											foreach($relation->state as $key => $value) {
-												if($filter = $state[$key]->filter) {
-													$state->remove($key)->insert($key, $filter, $value);
-												}
-											}
-										}
+			$model = $this->getService($relations->{$type}->{$column}->identifier);
+			$state = $model->getState();
 
-										$this->{$name} = array_values($model->taxonomy_taxonomy_id($ids)->getList()->toArray());
-									}
-								}
-							}
-						}
+			if($relations->{$type}->{$column}->{$column}->state) {
+				foreach($relations->{$type}->{$column}->state as $key => $value) {
+					if($filter = $state[$key]->filter) {
+						$state->remove($key)->insert($key, $filter, $value);
 					}
 				}
 			}
+
+			return $model->id($taxonomies->{$column})->getList();
+		}
+	}
+
+	public function __get($column)
+	{
+		$result = parent::__get($column);
+
+		if(!empty($this->ancestors) && empty($result)) {
+			$ancestors = json_decode($this->ancestors, true);
+
+			if(array_key_exists($column, $ancestors)) {
+				$result = $this->getRelation('ancestors', $column);
+
+				$this->setData(array(
+					$column => $result
+				));
+
+				return $result;
+			}
 		}
 
-		return $this;
+		if(!empty($this->descendants) && empty($result)) {
+			$descendants = json_decode($this->descendants, true);
+
+			if(array_key_exists($column, $descendants)) {
+				$result = $this->getRelation('descendants', $column);
+
+				$this->setData(array(
+					$column => $result
+				));
+
+				return $result;
+			}
+		}
+
+		return $result;
+	}
+
+	public function getRelations()
+	{
+		if($this->isRelationable()) {
+			return $this->getTable()->getBehavior('relationable')->getRelations();
+		}
 	}
 }

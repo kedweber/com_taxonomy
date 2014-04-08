@@ -174,39 +174,6 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 				}
 			}
 		}
-
-//			if($context->data instanceof KDatabaseRowDefault) {
-//				$ancestors = json_decode($context->data->ancestors);
-//
-//				foreach($this->_ancestors as $key => $ancestor) {
-//					if(is_object($ancestors->{$key})) {
-//
-//						$identifier = new KServiceIdentifier($ancestor->identifier);
-//						$identifier->path = array('database', 'row');
-//						$identifier->name = KInflector::singularize($identifier->name);
-//
-//						$context->data->{$key} = $this->getService($identifier)->setData($ancestors->{$key})->toArray();
-//					} elseif($ancestors->{$key}) {
-//						$context->data->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
-//					}
-//				}
-//
-//				$descendants = json_decode($context->data->descendants);
-//
-//				foreach($this->_descendants as $key => $descendant) {
-//
-//					if(is_object($descendants->{$key})) {
-//
-//						$identifier = new KServiceIdentifier($descendant->identifier);
-//						$identifier->path = array('database', 'row');
-//						$identifier->name = KInflector::singularize($identifier->name);
-//
-//						$context->data->{$key} = $this->getService($identifier)->setData($descendant->{$key})->toArray();
-//					} elseif($descendants->{$key}) {
-//						$context->data->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
-//					}
-//				}
-//			}
 	}
 
     protected function _afterTableInsert(KCommandContext $context)

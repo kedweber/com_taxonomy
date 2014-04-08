@@ -12,74 +12,25 @@ defined('KOOWA') or die('Protected resource');
 
 class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 {
-    protected $_ancestors;
+	/**
+	 * @var mixed
+	 */
+	protected $_ancestors;
 
-    protected $_descendants;
+	/**
+	 * @var mixed
+	 */
+	protected $_descendants;
 
-    public function __construct(KConfig $config)
+	/**
+	 * @param KConfig $config
+	 */
+	public function __construct(KConfig $config)
     {
         parent::__construct($config);
 
         $this->_ancestors   = $config->ancestors;
         $this->_descendants = $config->descendants;
-    }
-
-    public function getRelation($config = array())
-    {
-        $config = new KConfig($config);
-
-        $relation = $this->getService('com://admin/taxonomy.model.taxonomies')
-            ->row($this->id)
-            ->table($this->getMixer()->getTable()->getBase())
-            ->type($this->type)
-            ->getItem();
-
-        return $relation->getDescendants($config);
-    }
-
-    public function getAncestors($config = array())
-    {
-        $config = new KConfig($config);
-
-        $relation = $this->getService('com://admin/taxonomy.model.taxonomies')
-            ->row($this->id)
-            ->table($this->getMixer()->getTable()->getBase())
-            ->getItem();
-
-        return $relation->getAncestors($config);
-    }
-
-    public function getParent($config = array())
-    {
-        $config = new KConfig($config);
-
-        $relation = $this->getService('com://admin/taxonomy.model.taxonomies')
-            ->row($this->id)
-            ->table($this->getMixer()->getTable()->getBase())
-            ->getItem();
-
-
-        return $relation->getParent($config);
-    }
-
-    public function getTaxonomy()
-    {
-        $cache  = JFactory::getCache('com_taxonomy', '');
-        $key = $this->_getKey();
-
-        if($data = $cache->get($key)) {
-            $taxonomy = $this->getService('com://admin/taxonomy.database.row.taxonomy');
-            $taxonomy->setData(unserialize($data));
-        } else {
-            $taxonomy = $this->getService('com://admin/taxonomy.model.taxonomies')
-                ->row($this->id)
-                ->table($this->getMixer()->getTable()->getBase())
-                ->getItem();
-
-            $cache->store(serialize($taxonomy->getData()), $key);
-        }
-
-        return $taxonomy;
     }
 
     /**
@@ -127,37 +78,6 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
     }
 
 	/**
-	 * @param KCommandContext $context
-	 */
-	protected function _afterTableSelect(KCommandContext $context)
-	{
-		// TODO: Magic Call this?
-		if($context->data instanceof KDatabaseRowsetDefault) {
-			foreach($context->data as $row) {
-				$this->__setRelations($row);
-			}
-		}
-
-		if($context->data instanceof KDatabaseRowDefault) {
-			$this->__setRelations($context->data);
-		}
-	}
-
-    /**
-     * Generate a cache key
-     *
-     * The key is based on the identity column, table.
-     *
-     * @return 	string
-     */
-    protected function _getKey()
-    {
-        $key = md5($this->id .':'. $this->getMixer()->getTable()->getBase());
-
-        return $key;
-    }
-
-	/**
 	 * @return KConfig
 	 */
 	public function getRelations()
@@ -169,38 +89,5 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		));
 
 		return $config;
-	}
-
-	//TODO: Change name?
-	private function __setRelations($row)
-	{
-		foreach($this->getRelations() as $type => $relation) {
-			$data = json_decode($row->{$type});
-
-			foreach($relation as $name => $params) {
-				if($data->{$name}) {
-					$model = $this->getService($params['identifier']);
-
-					if(KInflector::isSingular($name)) {
-						$row->{$name} = $model->id($data->{$name})->getItem();
-					} else {
-						if($params['state']) {
-							$state = $model->getState();
-							foreach($params['state'] as $key => $value) {
-								if($filter = $state[$key]->filter) {
-									$state->remove($key)->insert($key, $filter, $value);
-								}
-							}
-						}
-
-						$row->{$name} = $model->id($data->{$name})->getList();
-
-						unset($state);
-					}
-
-					unset($model);
-				}
-			}
-		}
 	}
 }
