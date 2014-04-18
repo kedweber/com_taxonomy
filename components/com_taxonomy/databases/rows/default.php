@@ -6,7 +6,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 	 * @param $column
 	 * @return null
 	 */
-	public function getRelation($type, $column)
+	private function __getRelation($type, $column)
 	{
 		$relations = $this->getRelations();
 
@@ -17,8 +17,6 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 		}
 
 		if(KInflector::isPlural($column)) {
-			error_log($column.'  '.$relations->{$type}->{$column}->identifier);
-
 			$model = $this->getService($relations->{$type}->{$column}->identifier);
 			$state = $model->getState();
 
@@ -42,7 +40,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 			$ancestors = json_decode($this->ancestors, true);
 
 			if(is_array($ancestors) && array_key_exists($column, $ancestors)) {
-				$result = $this->getRelation('ancestors', $column);
+				$result = $this->__getRelation('ancestors', $column);
 
 				$this->setData(array(
 					$column => $result
@@ -56,7 +54,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 			$descendants = json_decode($this->descendants, true);
 
 			if(is_array($descendants) && array_key_exists($column, $descendants)) {
-				$result = $this->getRelation('descendants', $column);
+				$result = $this->__getRelation('descendants', $column);
 
 				$this->setData(array(
 					$column => $result
