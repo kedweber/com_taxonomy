@@ -118,63 +118,81 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		if($query && !$query->count) {
 			foreach($query->order as $order) {
 				if($this->getRelations()->ancestors instanceof KConfig) {
-					$columns = array_keys($this->getRelations()->ancestors->toArray());
+					$ancestors = $this->getRelations()->ancestors;
+
+					$columns = array_keys($ancestors->toArray());
 
 					if(in_array(str_replace('tbl.', null, $order['column']), $columns)) {
-						$query->select('SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1) AS '.$order['column']);
-						//TODO: Do we need to filter no values?
-						$query->having($order['column'].' > ""');
+						if($ancestors->{$order['column']}->sort) {
+							$query->select($order['column'].'.'.$ancestors->{$order['column']}->sort. ' AS '. $order['column']);
+							$query->join('LEFT', $ancestors->{$order['column']}->table.' AS '.$order['column'], array(
+								$order['column'].'.'.$ancestors->{$order['column']}->identity_column.' = SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1)'
+							));
+						} else {
+							$query->select('SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1) AS '.$order['column']);
+							//TODO: Do we need to filter no values?
+							$query->having($order['column'].' > ""');
+						}
 					}
 				}
 
 				if($this->getRelations()->descendants instanceof KConfig) {
-					$columns = array_keys($this->getRelations()->descendants->toArray());
+					$descendants = $this->getRelations()->descendants;
+
+					$columns = array_keys($descendants->toArray());
 
 					if(in_array(str_replace('tbl.', null, $order['column']), $columns)) {
-						$query->select('SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1) AS '.$order['column']);
-						//TODO: Do we need to filter no values?
-						$query->having($order['column'].' > ""');
+						if($descendants->{$order['column']}->sort) {
+							$query->select($order['column'].'.'.$descendants->{$order['column']}->sort. ' AS '. $order['column']);
+							$query->join('LEFT', $descendants->{$order['column']}->table.' AS '.$order['column'], array(
+								$order['column'].'.'.$descendants->{$order['column']}->identity_column.' = SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1)'
+							));
+						} else {
+							$query->select('SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1) AS '.$order['column']);
+							//TODO: Do we need to filter no values?
+							$query->having($order['column'].' > ""');
+						}
 					}
 				}
 			}
 		}
     }
 
-	protected function _afterTableSelect(KCommandContext $context)
-	{
-		//TODO:: Dont fire on insert / update / delete.
-		if($context->data instanceof KDatabaseRowsetDefault) {
-			foreach($context->data as $row) {
-				if($this->_ancestors instanceof KConfig) {
-					$ancestors = json_decode($row->ancestors);
-
-					foreach($this->_ancestors as $key => $ancestor) {
-						if($ancestors->{$key}) {
-							if(KInflector::isSingular($key)) {
-								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getItem();
-							} else {
-								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
-							}
-						}
-					}
-				}
-
-				if($this->_descendants instanceof KConfig) {
-					$descendants = json_decode($row->descendants);
-
-					foreach($this->_descendants as $key => $descendant) {
-						if($ancestors->{$key}) {
-							if(KInflector::isSingular($key)) {
-								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getItem();
-							} else {
-								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+//	protected function _afterTableSelect(KCommandContext $context)
+//	{
+//		//TODO:: Dont fire on insert / update / delete.
+//		if($context->data instanceof KDatabaseRowsetDefault) {
+//			foreach($context->data as $row) {
+//				if($this->_ancestors instanceof KConfig) {
+//					$ancestors = json_decode($row->ancestors);
+//
+//					foreach($this->_ancestors as $key => $ancestor) {
+//						if($ancestors->{$key}) {
+//							if(KInflector::isSingular($key)) {
+//								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getItem();
+//							} else {
+//								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
+//							}
+//						}
+//					}
+//				}
+//
+//				if($this->_descendants instanceof KConfig) {
+//					$descendants = json_decode($row->descendants);
+//
+//					foreach($this->_descendants as $key => $descendant) {
+//						if($ancestors->{$key}) {
+//							if(KInflector::isSingular($key)) {
+//								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getItem();
+//							} else {
+//								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
 
     protected function _afterTableInsert(KCommandContext $context)
     {
@@ -217,10 +235,12 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
 								$taxonomy->append($row->id);
 							} else {
-								//TODO: Check if array or object convert etc.
-								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
+								if($relation['taxonomy_taxonomy_id']) {
+									//TODO: Check if array or object convert etc.
+									$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
 
-								$taxonomy->append($row->id);
+									$taxonomy->append($row->id);
+								}
 							}
 
 							$ancestors[$name][] = $row->row;
