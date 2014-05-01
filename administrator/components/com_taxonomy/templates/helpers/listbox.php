@@ -29,7 +29,13 @@ class ComTaxonomyTemplateHelperListbox extends ComDefaultTemplateHelperListbox
 		    if($config->attribs->multiple) {
 			    $config->prompt = '- '.$this->translate('None').' -';
 
-			    $selected = $row->getRelation(array('type' => $config->relation, 'filter' => array('type' => $config->type)))->getIds('taxonomy_taxonomy_id');
+				if($config->table) {
+					$filter = array('table' => $config->table);
+				} else {
+					$filter = array('type' => $config->type);
+				}
+
+				$selected = $row->getRelation(array('type' => $config->relation, 'filter' => $filter))->getColumn('taxonomy_taxonomy_id');
 		    } else {
 			    $selected = $row->getParent(array('type' => $config->relation, 'filter' => array('type' => $config->type)))->taxonomy_taxonomy_id;
 		    }

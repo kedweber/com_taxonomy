@@ -116,7 +116,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         }
 
 		if($query && !$query->count) {
-			foreach($query->order as $order) {
+			foreach($query->order as $key => $order) {
 				if($this->getRelations()->ancestors instanceof KConfig) {
 					$ancestors = $this->getRelations()->ancestors;
 
@@ -124,10 +124,12 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
 					if(in_array(str_replace('tbl.', null, $order['column']), $columns)) {
 						if($ancestors->{$order['column']}->sort) {
-							$query->select($order['column'].'.'.$ancestors->{$order['column']}->sort. ' AS '. $order['column']);
+							$query->select($order['column'].'.'.$ancestors->{$order['column']}->sort. ' AS '. $order['column'].'_'.$ancestors->{$order['column']}->sort);
 							$query->join('LEFT', $ancestors->{$order['column']}->table.' AS '.$order['column'], array(
 								$order['column'].'.'.$ancestors->{$order['column']}->identity_column.' = SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1)'
 							));
+
+							$query->order[$key]['column'] =  $order['column'].'_'.$ancestors->{$order['column']}->sort;
 						} else {
 							$query->select('SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1) AS '.$order['column']);
 							//TODO: Do we need to filter no values?
@@ -143,10 +145,12 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
 					if(in_array(str_replace('tbl.', null, $order['column']), $columns)) {
 						if($descendants->{$order['column']}->sort) {
-							$query->select($order['column'].'.'.$descendants->{$order['column']}->sort. ' AS '. $order['column']);
+							$query->select($order['column'].'.'.$descendants->{$order['column']}->sort. ' AS '. $order['column'].'_'.$descendants->{$order['column']}->sort);
 							$query->join('LEFT', $descendants->{$order['column']}->table.' AS '.$order['column'], array(
 								$order['column'].'.'.$descendants->{$order['column']}->identity_column.' = SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1)'
 							));
+
+							$query->order[$key]['column'] =  $order['column'].'_'.$descendants->{$order['column']}->sort;
 						} else {
 							$query->select('SUBSTRING_INDEX(SUBSTR(ancestors,LOCATE(\'"'.strtoupper($order['column']).'":"\',ancestors)+CHAR_LENGTH(\'"'.strtoupper($order['column']).'":"\')),\'"\', 1) AS '.$order['column']);
 							//TODO: Do we need to filter no values?
@@ -261,10 +265,10 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		if($this->_descendants) {
 			foreach($this->_descendants as $name => $ancestor) {
 				if(isset($context->data->{$name})) {
-					$relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
+					$relations = $taxonomy->getDescendants(array('filter' => array('table' => $this->getService($ancestor->identifier)->getTable()->getBase())));
 
-					if($relations->getIds('taxonomy_taxonomy_id')) {
-						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
+					if($relations->getColumn('id')) {
+						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id(array($taxonomy->id))->descendant_id($relations->getColumn('taxonomy_taxonomy_id'))->getList()->delete();
 					}
 
 					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
