@@ -18,7 +18,11 @@ class ComTaxonomyTemplateHelperListbox extends ComDefaultTemplateHelperListbox
 	    $config     = new KConfig($config);
         $config->append(array(
            'relation' => 'descendants'
-        ));
+        ))->append(array(
+                'filter' => array(
+                    'type' => $config->type
+                )
+            ));
 
         $template   = $this->getTemplate();
         $name       = $template->getView()->getName();
@@ -32,12 +36,12 @@ class ComTaxonomyTemplateHelperListbox extends ComDefaultTemplateHelperListbox
 				if($config->table) {
 					$filter = array('table' => $config->table);
 				} else {
-					$filter = array('type' => $config->type);
+					$filter = array('type' => $config->filter->type);
 				}
 
 				$selected = $row->getRelation(array('type' => $config->relation, 'filter' => $filter))->getColumn('taxonomy_taxonomy_id');
 		    } else {
-			    $selected = $row->getParent(array('type' => $config->relation, 'filter' => array('type' => $config->type)))->taxonomy_taxonomy_id;
+			    $selected = $row->getParent(array('type' => $config->relation, 'filter' => array('type' => $config->filter->type)))->taxonomy_taxonomy_id;
 		    }
 	    }
 
@@ -50,8 +54,7 @@ class ComTaxonomyTemplateHelperListbox extends ComDefaultTemplateHelperListbox
             'name'     => 'taxonomy_taxonomy_id',
             'value'    => 'taxonomy_taxonomy_id',
             'text'     => 'title',
-            'selected' => $selected,
-            'filter'   => array('type' => $config->type),
+            'selected' => $selected
         ));
 
         return parent::_render($config);
