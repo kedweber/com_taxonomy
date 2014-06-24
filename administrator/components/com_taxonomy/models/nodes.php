@@ -96,11 +96,11 @@ class ComTaxonomyModelNodes extends ComDefaultModelDefault
             $id_column = $this->getTable()->getIdentityColumn();
 
             $query->where('r.ancestor_id', 'IN', $state->parent_id);
-            
+
             if (empty($state->include_self)) {
                 $query->where('tbl.'.$id_column, 'NOT IN', $state->parent_id);
             }
-            
+
             if ($state->level !== null) {
                 $query->where('r.level', 'IN', $state->level);
             }

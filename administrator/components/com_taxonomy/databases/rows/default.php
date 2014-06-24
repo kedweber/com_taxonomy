@@ -17,8 +17,6 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 		}
 
 		if(KInflector::isPlural($column)) {
-			error_log($column.'  '.$relations->{$type}->{$column}->identifier);
-
 			$model = $this->getService($relations->{$type}->{$column}->identifier);
 			$state = $model->getState();
 

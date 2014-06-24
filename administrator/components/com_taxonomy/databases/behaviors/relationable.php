@@ -221,21 +221,23 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $taxonomy->setData($data);
         $taxonomy->save();
 
-		$ancestors		= array();
-		$descendants	= array();
+		$ancestors		= json_decode($taxonomy->ancestors, true);
+		$descendants	= json_decode($taxonomy->descendants, true);
 
 		if($this->_ancestors) {
 			foreach($this->_ancestors as $name => $ancestor) {
 				if(isset($context->data->{$name})) {
-					$relations = $taxonomy->getAncestors(array('filter' => array('type' => KInflector::singularize($name))));
+					$relations = $taxonomy->getAncestors(array_merge_recursive($ancestor->toArray(), array('filter' => array('table' => $this->getService($ancestor->identifier)->getTable()->getBase()))));
 
 					if($relations->getIds('taxonomy_taxonomy_id')) {
 						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
 					}
 
+					unset($ancestors[$name]);
+
 					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
 						foreach($context->data->{$name} as $relation) {
-							if(is_numeric($relation)) {
+							if(is_numeric($relation) && $relation > 0) {
 								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
 								$taxonomy->append($row->id);
 							} else {
@@ -250,7 +252,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 							$ancestors[$name][] = $row->row;
 						}
 					} else {
-						if($context->data->{$name}) {
+						if(is_numeric($context->data->{$name})) {
 							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
 
 							$taxonomy->append($row->id);
@@ -263,31 +265,37 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
 
 		if($this->_descendants) {
-			foreach($this->_descendants as $name => $ancestor) {
+			foreach($this->_descendants as $name => $descendant) {
 				if(isset($context->data->{$name})) {
-					$relations = $taxonomy->getDescendants(array('filter' => array('table' => $this->getService($ancestor->identifier)->getTable()->getBase())));
+					$relations = $taxonomy->getDescendants(array_merge_recursive($descendant->toArray(), array('filter' => array('table' => $this->getService($descendant->identifier)->getTable()->getBase()))));
 
 					if($relations->getColumn('id')) {
 						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id(array($taxonomy->id))->descendant_id($relations->getColumn('taxonomy_taxonomy_id'))->getList()->delete();
 					}
 
+					unset($descendants[$name]);
+
 					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
 						foreach($context->data->{$name} as $relation) {
-							if(is_numeric($relation)) {
+							if(is_numeric($relation) && $relation > 0) {
 								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
 
 								$row->append($taxonomy->id);
+
+								$descendants[$name][] = $row->row;
 							} else {
-								//TODO: Check if array or object convert etc.
-								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
+								if($relation['taxonomy_taxonomy_id']) {
+									//TODO: Check if array or object convert etc.
+									$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
 
-								$row->append($taxonomy->id);
+									$row->append($taxonomy->id);
+
+									$descendants[$name][] = $row->row;
+								}
 							}
-
-							$descendants[$name][] = $row->row;
 						}
 					} else {
-						if($context->data->{$name}) {
+						if(is_numeric($context->data->{$name})) {
 							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
 
 							$row->append($taxonomy->id);
@@ -301,10 +309,14 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
 		if($ancestors) {
 			$taxonomy->ancestors = json_encode($ancestors);
+		} else {
+			$taxonomy->ancestors = null;
 		}
 
 		if($descendants) {
 			$taxonomy->descendants = json_encode($descendants);
+		} else {
+			$taxonomy->descendants = null;
 		}
 
 		$taxonomy->save();

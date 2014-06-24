@@ -59,7 +59,6 @@ class ComTaxonomyDatabaseRowsetTaxonomies extends KDatabaseRowsetDefault
 
             $identifier = clone $this->getIdentifier();
 
-            $identifier->application = 'site';
             $identifier->package = $parts[0];
             $identifier->path = 'model';
             $identifier->name = $parts[1];
