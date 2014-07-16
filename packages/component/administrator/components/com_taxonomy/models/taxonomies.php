@@ -35,7 +35,7 @@ class ComTaxonomyModelTaxonomies extends ComTaxonomyModelNodes
 			$i = 1;
 			foreach($state->type as $type) {
 				$subquery .='SELECT '.KInflector::pluralize($type).'_'.KInflector::singularize($type).'_id AS id, LOWER("'.strtoupper(KInflector::pluralize($type)).'_'.strtoupper(KInflector::pluralize($type)).'") AS test FROM #__'.$prefix.KInflector::pluralize($type).'_'.KInflector::pluralize($type).' AS '.KInflector::pluralize($type).'
-                WHERE enabled = 1 AND featured = 1';
+                WHERE enabled = 1 AND frontpage = 1';
 				if(KInflector::singularize($type) == 'event') {
 					$subquery .=' AND start_date >= CURDATE()';
 				}

@@ -162,9 +162,45 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
     }
 
+//	protected function _afterTableSelect(KCommandContext $context)
+//	{
+//		//TODO:: Dont fire on insert / update / delete.
+//		if($context->data instanceof KDatabaseRowsetDefault) {
+//			foreach($context->data as $row) {
+//				if($this->_ancestors instanceof KConfig) {
+//					$ancestors = json_decode($row->ancestors);
+//
+//					foreach($this->_ancestors as $key => $ancestor) {
+//						if($ancestors->{$key}) {
+//							if(KInflector::isSingular($key)) {
+//								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getItem();
+//							} else {
+//								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
+//							}
+//						}
+//					}
+//				}
+//
+//				if($this->_descendants instanceof KConfig) {
+//					$descendants = json_decode($row->descendants);
+//
+//					foreach($this->_descendants as $key => $descendant) {
+//						if($ancestors->{$key}) {
+//							if(KInflector::isSingular($key)) {
+//								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getItem();
+//							} else {
+//								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
+
     protected function _afterTableInsert(KCommandContext $context)
     {
-		$identifier = clone $this->getMixer()->getIdentifier();
+        $identifier = clone $this->getMixer()->getIdentifier();
 
         //Fix for identity columns that are none incremental.
         $context->data->id = $context->data->id ? $context->data->id : $context->data->{$identifier->package.'_'.$identifier->name.'_id'};
@@ -204,18 +240,16 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 							if(is_numeric($relation) && $relation > 0) {
 								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
 								$taxonomy->append($row->id);
-
-								$ancestors[$name][] = $row->row;
 							} else {
 								if($relation['taxonomy_taxonomy_id']) {
 									//TODO: Check if array or object convert etc.
 									$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
 
 									$taxonomy->append($row->id);
-
-									$ancestors[$name][] = $row->row;
 								}
 							}
+
+							$ancestors[$name][] = $row->row;
 						}
 					} else {
 						if(is_numeric($context->data->{$name})) {
