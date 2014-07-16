@@ -8,7 +8,7 @@
     <license>http://www.gnu.org/licenses/gpl.html GNU/GPL v3</license>
     <authorEmail>dave@moyoweb.nl</authorEmail>
     <authorUrl>www.moyoweb.nl</authorUrl>
-    <version>1.0.0</version>
+    <version>1.0.3</version>
     <description>Taxonomy</description>
 
     <install>
@@ -21,14 +21,6 @@
             <file driver="mysql" charset="utf8">install/uninstall.sql</file>
         </sql>
     </uninstall>
-
-    <files folder="components/com_taxonomy">
-        <file>taxonomy.php</file>
-
-        <folder>databases</folder>
-        <folder>models</folder>
-        <folder>views</folder>
-    </files>
 
     <administration>
         <files folder="administrator/components/com_taxonomy">
@@ -45,4 +37,15 @@
 
         <menu>COM_TAXONOMY</menu>
     </administration>
+
+    <files folder="components/com_taxonomy">
+        <file>taxonomy.php</file>
+
+        <folder>databases</folder>
+        <folder>models</folder>
+        <folder>rows</folder>
+        <folder>rowsets</folder>
+        <folder>tables</folder>
+        <folder>views</folder>
+    </files>
 </extension>
