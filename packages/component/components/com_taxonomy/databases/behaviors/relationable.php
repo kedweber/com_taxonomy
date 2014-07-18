@@ -26,12 +26,12 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 	 * @param KConfig $config
 	 */
 	public function __construct(KConfig $config)
-    {
-        parent::__construct($config);
+	{
+		parent::__construct($config);
 
-        $this->_ancestors   = $config->ancestors;
-        $this->_descendants = $config->descendants;
-    }
+		$this->_ancestors   = $config->ancestors ? $config->ancestors : array();
+		$this->_descendants = $config->descendants ? $config->descendants : array();
+	}
 
 	/**
 	 * @return mixed
@@ -39,18 +39,18 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 	public function getTaxonomy()
 	{
 		$taxonomy = $this->getService('com://admin/taxonomy.model.taxonomies')
-				->row($this->id)
-				->table($this->getMixer()->getTable()->getBase())
-				->getItem();
+			->row($this->id)
+			->table($this->getMixer()->getTable()->getBase())
+			->getItem();
 
 		return $taxonomy;
 	}
 
-    /**
-     * @param KCommandContext $context
-     */
-    protected function _beforeTableSelect(KCommandContext $context)
-    {
+	/**
+	 * @param KCommandContext $context
+	 */
+	protected function _beforeTableSelect(KCommandContext $context)
+	{
 		$table  = $context->caller;
 		$query  = $context->query;
 
@@ -118,46 +118,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 				}
 			}
 		}
-    }
-
-	/**
-	 * @param KCommandContext $context
-	 */
-//	protected function _afterTableSelect(KCommandContext $context)
-//	{
-//		//TODO:: Dont fire on insert / update / delete.
-//		if($context->data instanceof KDatabaseRowsetDefault) {
-//			foreach($context->data as $row) {
-//				if($this->_ancestors instanceof KConfig) {
-//					$ancestors = json_decode($row->ancestors);
-//
-//					foreach($this->_ancestors as $key => $ancestor) {
-//						if($ancestors->{$key}) {
-//							if(KInflector::isSingular($key)) {
-//								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getItem();
-//							} else {
-//								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
-//							}
-//						}
-//					}
-//				}
-//
-//				if($this->_descendants instanceof KConfig) {
-//					$descendants = json_decode($row->descendants);
-//
-//					foreach($this->_descendants as $key => $descendant) {
-//						if($ancestors->{$key}) {
-//							if(KInflector::isSingular($key)) {
-//								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getItem();
-//							} else {
-//								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
-//							}
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
+	}
 
 	/**
 	 * @return KConfig
