@@ -30,7 +30,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 			$model = $this->getService($identifier);
 			$state = $model->getState();
 
-			if($relations->{$type}->{$column}->{$column}->state) {
+			if(isset($relations->{$type}->{$column}->{$column}->state)) {
 				foreach($relations->{$type}->{$column}->state as $key => $value) {
 					if($filter = $state[$key]->filter) {
 						$state->remove($key)->insert($key, $filter, $value);
@@ -73,7 +73,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 		if(!empty($this->descendants) && empty($result)) {
 			$descendants = json_decode($this->descendants, true);
 
-			if((is_array($descendants) && array_key_exists($column, $descendants)) || $this->getRelations()->descendants->{$column}->fallback == 1) {
+			if((is_array($descendants) && array_key_exists($column, $descendants)) || (isset($this->getRelations()->descendants->{$column}) && $this->getRelations()->descendants->{$column}->fallback == 1)) {
 				$result = $this->__getRelation('descendants', $column);
 
 				$this->setData(array(
