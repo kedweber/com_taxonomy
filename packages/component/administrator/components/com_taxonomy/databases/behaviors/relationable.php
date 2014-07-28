@@ -188,7 +188,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
 		$ancestors			= json_decode($taxonomy->ancestors, true);
 		$descendants		= json_decode($taxonomy->descendants, true);
-		$orignial_ancestors =  $ancestors;
+		$orignial_ancestors = $ancestors;
 
 		if($this->_ancestors) {
 			foreach($this->_ancestors as $name => $ancestor) {
@@ -204,21 +204,11 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
 						// Remove old relations
 						foreach($orignial_ancestors[$name] as $orignial_ancestor) {
-							$data = $this->getService($this->getRelations()->ancestors->{$name}->identifier)->id($orignial_ancestor)->getItem();
-
-							$current_relations = json_decode($data->descendants, true);
-
-							$current_relations = array_unique($current_relations[KInflector::pluralize($this->getMixer()->getIdentifier()->name)]);
-							$current_relations = array_flip($current_relations);
-
-							unset($current_relations[$context->data->id]);
-
-							$current_relations = array_values(array_flip($current_relations));
-
-							$data->setData(array(
-								'descendants' => json_encode(array('articles' => $current_relations), true)
+							$this->removeRelation(array(
+								'type'	=> 'ancestors',
+								'name'	=> $name,
+								'id'	=> $orignial_ancestor
 							));
-
 							$data->save();
 						}
 
@@ -245,6 +235,12 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 						}
 					} else {
 						if(is_numeric($context->data->{$name})) {
+							$this->removeRelation(array(
+								'type'	=> 'ancestors',
+								'name'	=> $name,
+								'id'	=> $orignial_ancestors[$name]
+							));
+
 							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
 
 							$taxonomy->append($row->id);
@@ -306,13 +302,13 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
 
 		if($ancestors) {
-			$taxonomy->ancestors = json_encode($ancestors, JSON_NUMERIC_CHECK);
+			$taxonomy->ancestors = json_encode(array_filter($ancestors), JSON_NUMERIC_CHECK);
 		} else {
 			$taxonomy->ancestors = null;
 		}
 
 		if($descendants) {
-			$taxonomy->descendants = json_encode($descendants, JSON_NUMERIC_CHECK);
+			$taxonomy->descendants = json_encode(array_filter($descendants), JSON_NUMERIC_CHECK);
 		} else {
 			$taxonomy->descendants = null;
 		}
@@ -363,6 +359,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 	}
 
 	// TODO: Improve naming!
+	// TODO: Improve speed and complexity.
 	public function updateRelations($config = array())
 	{
 		$config = new KConfig($config);
@@ -394,5 +391,34 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
 			$row->save();
 		}
+	}
+
+	// TODO: Improve speed and complexity.
+	public function removeRelation($config = array())
+	{
+		$config = new KConfig($config);
+
+		$identifier = clone $this->getMixer()->getIdentifier();
+		$identifier->path = array('model');
+		$identifier->name = KInflector::pluralize($identifier->name);
+
+		$data = $this->getService($this->getRelations()->ancestors->{$config->name}->identifier)->id($config->id)->getItem();
+
+		$type = $config->type == 'ancestors' ? 'descendants' : 'ancestors';
+
+		$current_relations = json_decode($data->descendants, true);
+
+		$current_relations = array_unique($current_relations[KInflector::pluralize($this->getMixer()->getIdentifier()->name)]);
+		$current_relations = array_flip($current_relations);
+
+		unset($current_relations[$this->id]);
+
+		$current_relations = array_values(array_flip($current_relations));
+
+		$data->setData(array(
+			$type => json_encode(array(KInflector::pluralize($identifier->name) => $current_relations), true)
+		));
+
+		$data->save();
 	}
 }
