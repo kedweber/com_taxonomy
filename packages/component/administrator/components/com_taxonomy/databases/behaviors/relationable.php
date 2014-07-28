@@ -162,42 +162,6 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
     }
 
-//	protected function _afterTableSelect(KCommandContext $context)
-//	{
-//		//TODO:: Dont fire on insert / update / delete.
-//		if($context->data instanceof KDatabaseRowsetDefault) {
-//			foreach($context->data as $row) {
-//				if($this->_ancestors instanceof KConfig) {
-//					$ancestors = json_decode($row->ancestors);
-//
-//					foreach($this->_ancestors as $key => $ancestor) {
-//						if($ancestors->{$key}) {
-//							if(KInflector::isSingular($key)) {
-//								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getItem();
-//							} else {
-//								$row->{$key} = $this->getService($ancestor['identifier'])->id($ancestors->{$key})->getList();
-//							}
-//						}
-//					}
-//				}
-//
-//				if($this->_descendants instanceof KConfig) {
-//					$descendants = json_decode($row->descendants);
-//
-//					foreach($this->_descendants as $key => $descendant) {
-//						if($ancestors->{$key}) {
-//							if(KInflector::isSingular($key)) {
-//								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getItem();
-//							} else {
-//								$row->{$key} = $this->getService($descendant['identifier'])->id($descendants->{$key})->getList();
-//							}
-//						}
-//					}
-//				}
-//			}
-//		}
-//	}
-
     protected function _afterTableInsert(KCommandContext $context)
     {
         $identifier = clone $this->getMixer()->getIdentifier();
@@ -208,6 +172,7 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $data = array(
             'row'       => $context->data->id,
             'table'     => $context->caller->getBase(),
+			'descendants' => $context->data->descendants
         );
 
         if ($context->data->type)       $data['type']       = $context->data->type;
@@ -218,11 +183,12 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
             ->table($context->caller->getBase())
             ->getItem();
 
-        $taxonomy->setData($data);
-        $taxonomy->save();
+		$taxonomy->setData($data);
+		$taxonomy->save();
 
-		$ancestors		= json_decode($taxonomy->ancestors, true);
-		$descendants	= json_decode($taxonomy->descendants, true);
+		$ancestors			= json_decode($taxonomy->ancestors, true);
+		$descendants		= json_decode($taxonomy->descendants, true);
+		$orignial_ancestors =  $ancestors;
 
 		if($this->_ancestors) {
 			foreach($this->_ancestors as $name => $ancestor) {
@@ -236,6 +202,26 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 					unset($ancestors[$name]);
 
 					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
+						// Remove old relations
+						foreach($orignial_ancestors[$name] as $orignial_ancestor) {
+							$data = $this->getService($this->getRelations()->ancestors->{$name}->identifier)->id($orignial_ancestor)->getItem();
+
+							$current_relations = json_decode($data->descendants, true);
+
+							$current_relations = array_unique($current_relations[KInflector::pluralize($this->getMixer()->getIdentifier()->name)]);
+							$current_relations = array_flip($current_relations);
+
+							unset($current_relations[$context->data->id]);
+
+							$current_relations = array_values(array_flip($current_relations));
+
+							$data->setData(array(
+								'descendants' => json_encode(array('articles' => $current_relations), true)
+							));
+
+							$data->save();
+						}
+
 						foreach($context->data->{$name} as $relation) {
 							if(is_numeric($relation) && $relation > 0) {
 								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
@@ -249,6 +235,12 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 								}
 							}
 
+							$this->updateRelations(array(
+								'type'	=> 'ancestors',
+								'name'	=> $name,
+								'id'	=> $row->row
+							));
+
 							$ancestors[$name][] = $row->row;
 						}
 					} else {
@@ -258,6 +250,12 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 							$taxonomy->append($row->id);
 
 							$ancestors[$name] = $row->row;
+
+							$this->updateRelations(array(
+								'type'	=> 'ancestors',
+								'name'	=> $name,
+								'id'	=> $row->row
+							));
 						}
 					}
 				}
@@ -308,13 +306,13 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
 
 		if($ancestors) {
-			$taxonomy->ancestors = json_encode($ancestors);
+			$taxonomy->ancestors = json_encode($ancestors, JSON_NUMERIC_CHECK);
 		} else {
 			$taxonomy->ancestors = null;
 		}
 
 		if($descendants) {
-			$taxonomy->descendants = json_encode($descendants);
+			$taxonomy->descendants = json_encode($descendants, JSON_NUMERIC_CHECK);
 		} else {
 			$taxonomy->descendants = null;
 		}
@@ -362,5 +360,39 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		));
 
 		return $config;
+	}
+
+	// TODO: Improve naming!
+	public function updateRelations($config = array())
+	{
+		$config = new KConfig($config);
+
+		$identifier = clone $this->getMixer()->getIdentifier();
+		$identifier->path = array('model');
+		$identifier->name = KInflector::pluralize($identifier->name);
+
+		if($config->id) {
+			$row = $this->getService($this->getRelations()->{$config->type}->{$config->name}->identifier)->id($config->id)->getItem();
+
+			$type = $config->type == 'ancestors' ? 'descendants' : 'ancestors';
+
+			$relation = json_decode($row->{$type}, true);
+
+			if(KInflector::isPlural($config->name)) {
+				if($relation[$identifier->name]) {
+					array_push($relation[$identifier->name], $this->getMixer()->id);
+				} else {
+					$relation[$identifier->name] = array($this->getMixer()->id);
+				}
+			} else {
+				$relation[$identifier->name] = $this->getMixer()->id;
+			}
+
+			$row->setData(array(
+				$type => json_encode($relation, true)
+			));
+
+			$row->save();
+		}
 	}
 }
