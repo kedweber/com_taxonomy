@@ -1,9 +1,9 @@
 {
-    "name": "moyo/taxonomy",
+    "name": "cta/taxonomy",
     "type": "joomlatools-installer",
     "description": "Router Package",
     "keywords": ["joomla", "moyo"],
-    "homepage": "https://moyoweb.assembla.com/code/moyo-content/git-2/nodes",
+    "homepage": "https://github.com/cta-int/taxonomy",
     "authors": [
         {
             "name": "Dave Li",
