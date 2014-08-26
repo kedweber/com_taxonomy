@@ -54,6 +54,18 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         return $relation->getAncestors($config);
     }
 
+    public function getDescendants($config = array())
+    {
+        $config = new KConfig($config);
+
+        $relation = $this->getService('com://admin/taxonomy.model.taxonomies')
+            ->row($this->id)
+            ->table($this->getMixer()->getTable()->getBase())
+            ->getItem();
+
+        return $relation->getDescendants($config);
+    }
+
     public function getParent($config = array())
     {
         $config = new KConfig($config);
