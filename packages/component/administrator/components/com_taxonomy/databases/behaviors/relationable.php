@@ -18,13 +18,8 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
     public function __construct(KConfig $config)
     {
-		if(isset($config->ancestors)) {
-			$this->_ancestors = $config->ancestors;
-		}
-
-		if(isset($config->descendants)) {
-			$this->_descendants = $config->descendants;
-		}
+        $this->_ancestors = $config->ancestors ? $config->ancestors : new KConfig();
+        $this->_descendants = $config->descendants ? $config->descendants : new KConfig();
 
 		parent::__construct($config);
     }
@@ -174,158 +169,161 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
     }
 
+    /**
+     * @param $config, either ancestors or descendants from the config
+     * @param $data, the post data
+     * @return array, the new relations
+     */
+    private function __getNewRelations($config, $data)
+    {
+        $new_relations = array();
+        foreach ($config as $name => $value) {
+            if (isset($data[$name])) {
+                $relation = $data[$name];
+                // If relation name is plural, save as array
+                if (KInflector::isPlural($name) && !is_array($relation)) {
+                    $relation = array($relation);
+                }
+                // If relation name is singular, save as int
+                else if (KInflector::isSingular($name) && is_array($relation) && count($relation) == 1) {
+                    $relation = $relation[0];
+                }
+
+                $new_relations[$name] = $relation;
+            }
+        }
+
+        return $new_relations;
+    }
+
+//    private function __array_diff_deep($array1, $array2)
+//    {
+//        $diff = array();
+//
+//        foreach ($array1 as $name => $value) {
+//            if (!$array2[$name]) {
+//                $diff[$name] = $value;
+//            } else if (is_array($array2[$name])) { // plural
+//                $diff[$name] = array_diff((array)$value, $array2[$name]);
+//            } else if ($array1[$name] != $array2[$name]) { // single
+//                $diff[$name] = $value;
+//            }
+//        }
+//
+//        return $diff;
+//    }
+
+    /**
+     * Saves the relations.
+     *
+     * @param KCommandContext $context
+     */
     protected function _afterTableInsert(KCommandContext $context)
     {
-        $identifier = clone $this->getMixer()->getIdentifier();
-
         //Fix for identity columns that are none incremental.
+        $identifier = clone $this->getMixer()->getIdentifier();
         $context->data->id = $context->data->id ? $context->data->id : $context->data->{$identifier->package.'_'.$identifier->name.'_id'};
 
-        $data = array(
-            'row'       => $context->data->id,
-            'table'     => $context->caller->getBase(),
-			'descendants' => $context->data->descendants
-        );
-
-        if ($context->data->type)       $data['type']       = $context->data->type;
-        if ($context->data->parent_id)  $data['parent_id']  = $context->data->parent_id;
-
+        // Get the taxonomy of the caller
         $taxonomy = $this->getService('com://admin/taxonomy.model.taxonomies')
             ->row($context->data->id)
             ->table($context->caller->getBase())
             ->getItem();
 
-		$taxonomy->setData($data);
-		$taxonomy->save();
+        // If new? save to get an id.
+        if (!$taxonomy->id) {
+            $taxonomy->save();
+        }
 
-		$ancestors			= json_decode($taxonomy->ancestors, true);
-		$descendants		= json_decode($taxonomy->descendants, true);
-		$orignial_ancestors = $ancestors;
+//        // Put the old relations in variables
+//        $old_ancestors = json_decode($taxonomy->ancestors, true);
+//        $old_descendants = json_decode($taxonomy->descendants, true);
 
-		if($this->_ancestors) {
-			foreach($this->_ancestors as $name => $ancestor) {
-				if(isset($context->data->{$name})) {
-					$relations = $taxonomy->getAncestors(array_merge_recursive($ancestor->toArray(), array('filter' => array('table' => $this->getService($ancestor->identifier)->getTable()->getBase()))));
+        // Check if relations to save are set in the config
+        $post_data = $context->data->getData();
+        $new_ancestors = $this->__getNewRelations($this->_ancestors, $post_data);
+        $new_descendants = $this->__getNewRelations($this->_descendants, $post_data);
 
-					if($relations->getIds('taxonomy_taxonomy_id')) {
-						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
-					}
+//        /**
+//         * Save new relations in taxonomy_taxonomy_relations
+//         **/
+//        // Ancestors:
+//        $ancestors_to_save = $this->__array_diff_deep($new_ancestors, $old_ancestors);
+//        foreach ($ancestors_to_save as $name => $taxonomy_taxonomy_id) {
+//            $taxonomy_relation = $this->getService('com://admin/taxonomy.model.taxonomy_relations')->getItem();
+//            $taxonomy_relation->setData(array(
+//                'ancestor_id'   => $taxonomy_taxonomy_id,
+//                'descendant_id' => $taxonomy->id,
+//                'level'         => 1
+//            ));
+////            $taxonomy_relation->save();
+//        }
+//        // Descendants:
+//        $descendants_to_save = $this->__array_diff_deep($new_descendants, $old_descendants);
+//        foreach ($descendants_to_save as $name => $taxonomy_taxonomy_id) {
+//            $taxonomy_relation = $this->getService('com://admin/taxonomy.model.taxonomy_relations')->getItem();
+//            $taxonomy_relation->setData(array(
+//                'ancestor_id'   => $taxonomy->id,
+//                'descendant_id' => $taxonomy_taxonomy_id,
+//                'level'         => 1
+//            ));
+////            $taxonomy_relation->save();
+//        }
+//
+//        /**
+//         * Delete old relations in taxonomy_taxonomy_relations
+//         **/
+//        // Ancestors:
+//        $ancestors_to_remove = $this->__array_diff_deep($old_ancestors, $new_ancestors);
+//        foreach ($ancestors_to_remove as $name => $taxonomy_taxonomy_id) {
+//            $this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($taxonomy_taxonomy_id)->descendant_id($taxonomy->id)->level(1)->getItem()->delete();
+//        }
+//        // Descendants:
+//        $descendants_to_remove = $this->__array_diff_deep($old_descendants, $new_descendants);
+//        foreach ($ancestors_to_remove as $name => $taxonomy_taxonomy_id) {
+//            $this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($taxonomy->id)->descendant_id($taxonomy_taxonomy_id)->level(1)->getItem()->delete();
+//        }
 
-					unset($ancestors[$name]);
+        // Set the ids to their entity IDs instead of the taxonomyIDs
+        $ancestors_to_save = array();
+        foreach ($new_ancestors as $name => $value) {
+            $rowIds = array();
 
-					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
-						// Remove old relations
-						foreach($orignial_ancestors[$name] as $orignial_ancestor) {
-							$this->removeRelation(array(
-								'type'	=> 'ancestors',
-								'name'	=> $name,
-								'id'	=> $orignial_ancestor
-							));
-							$data->save();
-						}
+            if (is_array($value)) {
+                $relations = $this->getService('com://admin/taxonomy.model.taxonomies')->ids(array_values($value))->getList()->getColumn('row');
+                $rowIds = array_merge($rowIds, array_keys($relations));
+            } else if (is_numeric($value)) {
+                $relation = $this->getService('com://admin/taxonomy.model.taxonomies')->id($value)->getItem();
+                if ($relation->id) {
+                    $rowIds = $relation->id;
+                }
+            }
 
-						foreach($context->data->{$name} as $relation) {
-							if(is_numeric($relation) && $relation > 0) {
-								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
-								$taxonomy->append($row->id);
-							} else {
-								if($relation['taxonomy_taxonomy_id']) {
-									//TODO: Check if array or object convert etc.
-									$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
+            $ancestors_to_save[$name] = $rowIds;
+        }
 
-									$taxonomy->append($row->id);
-								}
-							}
+        $descendants_to_save = array();
+        foreach ($new_descendants as $name => $value) {
+            $rowIds = array();
 
-							$this->updateRelations(array(
-								'type'	=> 'ancestors',
-								'name'	=> $name,
-								'id'	=> $row->row
-							));
+            if (is_array($value)) {
+                $relations = $this->getService('com://admin/taxonomy.model.taxonomies')->ids(array_values($value))->getList()->getColumn('row');
+                $rowIds = array_merge($rowIds, array_keys($relations));
+            } else if (is_numeric($value)) {
+                $relation = $this->getService('com://admin/taxonomy.model.taxonomies')->id($value)->getItem();
+                if ($relation->id) {
+                    $rowIds = $relation->id;
+                }
+            }
 
-							$ancestors[$name][] = $row->row;
-						}
-					} else {
-						if(is_numeric($context->data->{$name})) {
-							$this->removeRelation(array(
-								'type'	=> 'ancestors',
-								'name'	=> $name,
-								'id'	=> $orignial_ancestors[$name]
-							));
+            $descendants_to_save[$name] = $rowIds;
+        }
 
-							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
+        $taxonomy->ancestors = json_encode($ancestors_to_save, JSON_NUMERIC_CHECK); // Make sure ids are ints and not strings
+        $taxonomy->descendants = json_encode($descendants_to_save, JSON_NUMERIC_CHECK); // Make sure ids are ints and not strings
 
-							$taxonomy->append($row->id);
-
-							$ancestors[$name] = $row->row;
-
-							$this->updateRelations(array(
-								'type'	=> 'ancestors',
-								'name'	=> $name,
-								'id'	=> $row->row
-							));
-						}
-					}
-				}
-			}
-		}
-
-		if($this->_descendants) {
-			foreach($this->_descendants as $name => $descendant) {
-				if(isset($context->data->{$name})) {
-					$relations = $taxonomy->getDescendants(array_merge_recursive($descendant->toArray(), array('filter' => array('table' => $this->getService($descendant->identifier)->getTable()->getBase()))));
-
-					if($relations->getColumn('id')) {
-						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id(array($taxonomy->id))->descendant_id($relations->getColumn('taxonomy_taxonomy_id'))->getList()->delete();
-					}
-
-					unset($descendants[$name]);
-
-					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
-						foreach($context->data->{$name} as $relation) {
-							if(is_numeric($relation) && $relation > 0) {
-								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
-
-								$row->append($taxonomy->id);
-
-								$descendants[$name][] = $row->row;
-							} else {
-								if($relation['taxonomy_taxonomy_id']) {
-									//TODO: Check if array or object convert etc.
-									$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
-
-									$row->append($taxonomy->id);
-
-									$descendants[$name][] = $row->row;
-								}
-							}
-						}
-					} else {
-						if(is_numeric($context->data->{$name})) {
-							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
-
-							$row->append($taxonomy->id);
-
-							$descendants[$name] = $row->row;
-						}
-					}
-				}
-			}
-		}
-
-		if($ancestors) {
-			$taxonomy->ancestors = json_encode(array_filter($ancestors), JSON_NUMERIC_CHECK);
-		} else {
-			$taxonomy->ancestors = null;
-		}
-
-		if($descendants) {
-			$taxonomy->descendants = json_encode(array_filter($descendants), JSON_NUMERIC_CHECK);
-		} else {
-			$taxonomy->descendants = null;
-		}
-
-		$taxonomy->save();
+        // Save the taxonomy with updated relations in ancestors/descendants columns
+        $taxonomy->save();
     }
 
     protected function _afterTableUpdate(KCommandContext $context)
