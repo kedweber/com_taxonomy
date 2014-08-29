@@ -215,6 +215,14 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
             ->table($context->caller->getBase())
             ->getItem();
 
+        if($taxonomy->isNew()) {
+            $taxonomy->setData(array(
+                'row'   => $context->data->id,
+                'table' => $context->caller->getBase(),
+                'type'  => $context->data->type
+            ));
+        }
+
         // Check if relations to save are set in the config
         $post_data = $context->data->getData(); // The post data has the entity ids
         $new_ancestors = $this->__getNewRelations($this->_ancestors, $post_data);
