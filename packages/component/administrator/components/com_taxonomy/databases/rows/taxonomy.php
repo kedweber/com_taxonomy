@@ -1,5 +1,5 @@
 <?php
 
-class ComTaxonomyDatabaseRowTaxonomy extends ComTaxonomyDatabaseRowNode
+class ComTaxonomyDatabaseRowTaxonomy extends ComTaxonomyDatabaseRowDefault
 {
 }

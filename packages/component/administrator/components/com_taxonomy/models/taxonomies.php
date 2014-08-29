@@ -1,6 +1,6 @@
 <?php
 
-class ComTaxonomyModelTaxonomies extends ComTaxonomyModelNodes
+class ComTaxonomyModelTaxonomies extends ComDefaultModelDefault
 {
     /**
      * @param KConfig $config

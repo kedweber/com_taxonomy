@@ -34,7 +34,7 @@ class ComTaxonomyDatabaseRowNode extends KDatabaseRowDefault
             throw new KDatabaseRowException('Relation table cannot be empty');
         }
 
-        $this->mixin(clone $this->getTable()->getBehavior('node'));
+//        $this->mixin(clone $this->getTable()->getBehavior('node'));
     }
 
     /**

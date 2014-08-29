@@ -12,7 +12,7 @@ class ComTaxonomyDatabaseTableNodes extends KDatabaseTableDefault
             throw new KDatabaseTableException('Relation table cannot be empty');
         }
 
-        $this->setRelationTable($config->relation_table);
+//        $this->setRelationTable($config->relation_table);
     }
 
     protected function _initialize(KConfig $config)
