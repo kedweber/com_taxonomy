@@ -22,17 +22,3 @@ CREATE TABLE IF NOT EXISTS `#__taxonomy_taxonomies` (
   UNIQUE KEY `composite_key` (`row`,`table`),
   KEY `type` (`type`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- ----------------------------
---  Table structure for `#__taxonomy_taxonomy_relations`
--- ----------------------------
-CREATE TABLE IF NOT EXISTS `#__taxonomy_taxonomy_relations` (
-  `ancestor_id` int(11) unsigned NOT NULL DEFAULT '0',
-  `descendant_id` int(11) unsigned NOT NULL DEFAULT '0',
-  `level` int(11) NOT NULL DEFAULT '0',
-  `draft` tinyint(4) NOT NULL DEFAULT '0',
-  `created_on` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
-  `created_by` bigint(20) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`ancestor_id`,`descendant_id`,`level`),
-  KEY `path_index` (`descendant_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;

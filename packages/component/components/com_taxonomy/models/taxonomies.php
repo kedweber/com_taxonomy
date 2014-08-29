@@ -1,6 +1,6 @@
 <?php
 
-class ComTaxonomyModelTaxonomies extends ComTaxonomyModelNodes
+class ComTaxonomyModelTaxonomies extends ComDefaultModelDefault
 {
     /**
      * @param KConfig $config
@@ -11,8 +11,7 @@ class ComTaxonomyModelTaxonomies extends ComTaxonomyModelNodes
 
         $this->_state
             ->insert('type'				, 'string')
-            ->insert('ids'				, 'string')
-        ;
+            ->insert('ids'				, 'string');
     }
 
     /**

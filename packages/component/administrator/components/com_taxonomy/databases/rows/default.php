@@ -8,7 +8,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 	 */
 	private function __getRelation($type, $column)
 	{
-		$relations = $this->getRelations();
+        $relations = $this->getRelations();
 
 		$taxonomies = json_decode($this->{$type});
 
@@ -34,7 +34,7 @@ class ComTaxonomyDatabaseRowDefault extends KDatabaseRowDefault
 
 	public function __get($column)
 	{
-		$result = parent::__get($column);
+        $result = parent::__get($column);
 
 		if(!empty($this->ancestors) && empty($result)) {
 			$ancestors = json_decode($this->ancestors, true);

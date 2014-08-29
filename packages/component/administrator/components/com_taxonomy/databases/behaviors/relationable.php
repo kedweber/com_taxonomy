@@ -18,13 +18,8 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 
     public function __construct(KConfig $config)
     {
-		if(isset($config->ancestors)) {
-			$this->_ancestors = $config->ancestors;
-		}
-
-		if(isset($config->descendants)) {
-			$this->_descendants = $config->descendants;
-		}
+        $this->_ancestors = $config->ancestors ? $config->ancestors : new KConfig();
+        $this->_descendants = $config->descendants ? $config->descendants : new KConfig();
 
 		parent::__construct($config);
     }
@@ -52,6 +47,18 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
             ->getItem();
 
         return $relation->getAncestors($config);
+    }
+
+    public function getDescendants($config = array())
+    {
+        $config = new KConfig($config);
+
+        $relation = $this->getService('com://admin/taxonomy.model.taxonomies')
+            ->row($this->id)
+            ->table($this->getMixer()->getTable()->getBase())
+            ->getItem();
+
+        return $relation->getDescendants($config);
     }
 
     public function getParent($config = array())
@@ -162,158 +169,69 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		}
     }
 
+    /**
+     * Check is the relations in the data are mentioned in the config. If not then they are not returned.
+     *
+     * @param $config, either ancestors or descendants from the config
+     * @param $data, the post data
+     * @return array, the new relations
+     */
+    private function __getNewRelations($config, $data)
+    {
+        $new_relations = array();
+        foreach ($config as $name => $value) {
+            if (isset($data[$name])) {
+                $relation = $data[$name];
+                // If relation name is plural, save as array
+                if (KInflector::isPlural($name) && !is_array($relation)) {
+                    $relation = array($relation);
+                }
+                // If relation name is singular, save as int
+                else if (KInflector::isSingular($name) && is_array($relation) && count($relation) == 1) {
+                    $relation = $relation[0];
+                }
+
+                $new_relations[$name] = $relation;
+            }
+        }
+
+        return $new_relations;
+    }
+
+    /**
+     * Saves the relations in both ancestors/descendants columns and taxonomy_relations table.
+     *
+     * @param KCommandContext $context
+     */
     protected function _afterTableInsert(KCommandContext $context)
     {
-        $identifier = clone $this->getMixer()->getIdentifier();
-
         //Fix for identity columns that are none incremental.
+        $identifier = clone $this->getMixer()->getIdentifier();
         $context->data->id = $context->data->id ? $context->data->id : $context->data->{$identifier->package.'_'.$identifier->name.'_id'};
 
-        $data = array(
-            'row'       => $context->data->id,
-            'table'     => $context->caller->getBase(),
-			'descendants' => $context->data->descendants
-        );
-
-        if ($context->data->type)       $data['type']       = $context->data->type;
-        if ($context->data->parent_id)  $data['parent_id']  = $context->data->parent_id;
-
+        // Get the taxonomy of the caller
         $taxonomy = $this->getService('com://admin/taxonomy.model.taxonomies')
             ->row($context->data->id)
             ->table($context->caller->getBase())
             ->getItem();
 
-		$taxonomy->setData($data);
-		$taxonomy->save();
+        if($taxonomy->isNew()) {
+            $taxonomy->setData(array(
+                'row'   => $context->data->id,
+                'table' => $context->caller->getBase(),
+                'type'  => $context->data->type
+            ));
+        }
 
-		$ancestors			= json_decode($taxonomy->ancestors, true);
-		$descendants		= json_decode($taxonomy->descendants, true);
-		$orignial_ancestors = $ancestors;
+        // Check if relations to save are set in the config
+        $post_data = $context->data->getData(); // The post data has the entity ids
+        $new_ancestors = $this->__getNewRelations($this->_ancestors, $post_data);
+        $new_descendants = $this->__getNewRelations($this->_descendants, $post_data);
 
-		if($this->_ancestors) {
-			foreach($this->_ancestors as $name => $ancestor) {
-				if(isset($context->data->{$name})) {
-					$relations = $taxonomy->getAncestors(array_merge_recursive($ancestor->toArray(), array('filter' => array('table' => $this->getService($ancestor->identifier)->getTable()->getBase()))));
+        $taxonomy->ancestors = json_encode($new_ancestors, JSON_NUMERIC_CHECK); // Make sure ids are ints and not strings
+        $taxonomy->descendants = json_encode($new_descendants, JSON_NUMERIC_CHECK); // Make sure ids are ints and not strings
 
-					if($relations->getIds('taxonomy_taxonomy_id')) {
-						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id($relations->getIds('taxonomy_taxonomy_id'))->descendant_id(array($taxonomy->id))->getList()->delete();
-					}
-
-					unset($ancestors[$name]);
-
-					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
-						// Remove old relations
-						foreach($orignial_ancestors[$name] as $orignial_ancestor) {
-							$this->removeRelation(array(
-								'type'	=> 'ancestors',
-								'name'	=> $name,
-								'id'	=> $orignial_ancestor
-							));
-							$data->save();
-						}
-
-						foreach($context->data->{$name} as $relation) {
-							if(is_numeric($relation) && $relation > 0) {
-								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
-								$taxonomy->append($row->id);
-							} else {
-								if($relation['taxonomy_taxonomy_id']) {
-									//TODO: Check if array or object convert etc.
-									$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
-
-									$taxonomy->append($row->id);
-								}
-							}
-
-							$this->updateRelations(array(
-								'type'	=> 'ancestors',
-								'name'	=> $name,
-								'id'	=> $row->row
-							));
-
-							$ancestors[$name][] = $row->row;
-						}
-					} else {
-						if(is_numeric($context->data->{$name})) {
-							$this->removeRelation(array(
-								'type'	=> 'ancestors',
-								'name'	=> $name,
-								'id'	=> $orignial_ancestors[$name]
-							));
-
-							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
-
-							$taxonomy->append($row->id);
-
-							$ancestors[$name] = $row->row;
-
-							$this->updateRelations(array(
-								'type'	=> 'ancestors',
-								'name'	=> $name,
-								'id'	=> $row->row
-							));
-						}
-					}
-				}
-			}
-		}
-
-		if($this->_descendants) {
-			foreach($this->_descendants as $name => $descendant) {
-				if(isset($context->data->{$name})) {
-					$relations = $taxonomy->getDescendants(array_merge_recursive($descendant->toArray(), array('filter' => array('table' => $this->getService($descendant->identifier)->getTable()->getBase()))));
-
-					if($relations->getColumn('id')) {
-						$this->getService('com://admin/taxonomy.model.taxonomy_relations')->ancestor_id(array($taxonomy->id))->descendant_id($relations->getColumn('taxonomy_taxonomy_id'))->getList()->delete();
-					}
-
-					unset($descendants[$name]);
-
-					if(KInflector::isPlural($name) && is_array($context->data->{$name})) {
-						foreach($context->data->{$name} as $relation) {
-							if(is_numeric($relation) && $relation > 0) {
-								$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation)->getItem();
-
-								$row->append($taxonomy->id);
-
-								$descendants[$name][] = $row->row;
-							} else {
-								if($relation['taxonomy_taxonomy_id']) {
-									//TODO: Check if array or object convert etc.
-									$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($relation['taxonomy_taxonomy_id'])->getItem();
-
-									$row->append($taxonomy->id);
-
-									$descendants[$name][] = $row->row;
-								}
-							}
-						}
-					} else {
-						if(is_numeric($context->data->{$name})) {
-							$row = $this->getService('com://admin/taxonomy.model.taxonomies')->id($context->data->{$name})->getItem();
-
-							$row->append($taxonomy->id);
-
-							$descendants[$name] = $row->row;
-						}
-					}
-				}
-			}
-		}
-
-		if($ancestors) {
-			$taxonomy->ancestors = json_encode(array_filter($ancestors), JSON_NUMERIC_CHECK);
-		} else {
-			$taxonomy->ancestors = null;
-		}
-
-		if($descendants) {
-			$taxonomy->descendants = json_encode(array_filter($descendants), JSON_NUMERIC_CHECK);
-		} else {
-			$taxonomy->descendants = null;
-		}
-
-		$taxonomy->save();
+        $taxonomy->save();
     }
 
     protected function _afterTableUpdate(KCommandContext $context)
@@ -356,69 +274,5 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
 		));
 
 		return $config;
-	}
-
-	// TODO: Improve naming!
-	// TODO: Improve speed and complexity.
-	public function updateRelations($config = array())
-	{
-		$config = new KConfig($config);
-
-		$identifier = clone $this->getMixer()->getIdentifier();
-		$identifier->path = array('model');
-		$identifier->name = KInflector::pluralize($identifier->name);
-
-		if($config->id) {
-			$row = $this->getService($this->getRelations()->{$config->type}->{$config->name}->identifier)->id($config->id)->getItem();
-
-			$type = $config->type == 'ancestors' ? 'descendants' : 'ancestors';
-
-			$relation = json_decode($row->{$type}, true);
-
-			if(KInflector::isPlural($config->name)) {
-				if($relation[$identifier->name]) {
-					array_push($relation[$identifier->name], $this->getMixer()->id);
-				} else {
-					$relation[$identifier->name] = array($this->getMixer()->id);
-				}
-			} else {
-				$relation[$identifier->name] = $this->getMixer()->id;
-			}
-
-			$row->setData(array(
-				$type => json_encode($relation, true)
-			));
-
-			$row->save();
-		}
-	}
-
-	// TODO: Improve speed and complexity.
-	public function removeRelation($config = array())
-	{
-		$config = new KConfig($config);
-
-		$identifier = clone $this->getMixer()->getIdentifier();
-		$identifier->path = array('model');
-		$identifier->name = KInflector::pluralize($identifier->name);
-
-		$data = $this->getService($this->getRelations()->ancestors->{$config->name}->identifier)->id($config->id)->getItem();
-
-		$type = $config->type == 'ancestors' ? 'descendants' : 'ancestors';
-
-		$current_relations = json_decode($data->descendants, true);
-
-		$current_relations = array_unique($current_relations[KInflector::pluralize($this->getMixer()->getIdentifier()->name)]);
-		$current_relations = array_flip($current_relations);
-
-		unset($current_relations[$this->id]);
-
-		$current_relations = array_values(array_flip($current_relations));
-
-		$data->setData(array(
-			$type => json_encode(array(KInflector::pluralize($identifier->name) => $current_relations), true)
-		));
-
-		$data->save();
 	}
 }
