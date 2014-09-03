@@ -17,6 +17,10 @@
         </sql>
     </install>
 
+    <media folder="media">
+        <folder>com_taxonomy/js</folder>
+    </media>
+
     <administration>
         <files folder="administrator/components/com_taxonomy">
             <file>dispatcher.php</file>
