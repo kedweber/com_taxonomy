@@ -228,8 +228,18 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $new_ancestors = $this->__getNewRelations($this->_ancestors, $post_data);
         $new_descendants = $this->__getNewRelations($this->_descendants, $post_data);
 
-        $taxonomy->ancestors = json_encode($new_ancestors, JSON_NUMERIC_CHECK); // Make sure ids are ints and not strings
-        $taxonomy->descendants = json_encode($new_descendants, JSON_NUMERIC_CHECK); // Make sure ids are ints and not strings
+        // Set old relations if there are no relations given in the post data
+        if (!$new_ancestors || empty($new_ancestors)) {
+            $taxonomy->ancestors = $context->data->ancestors;
+        } else {
+            $taxonomy->ancestors = json_encode($new_ancestors, JSON_NUMERIC_CHECK); // Make sure ids are ints and not strings
+        }
+
+        if (!$new_descendants || empty($new_descendants)) {
+            $taxonomy->descendants = $context->data->descendants;
+        } else {
+            $taxonomy->descendants = json_encode($new_descendants, JSON_NUMERIC_CHECK); // Make sure ids are ints and not strings
+        }
 
         $taxonomy->save();
     }
