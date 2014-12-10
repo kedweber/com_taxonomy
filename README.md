@@ -37,10 +37,14 @@ section:
 The require section should contain the following line:
 
 ```json
-    "moyo/taxonomy": "1.0.*",
+    "moyo/taxonomy": "2.0.*",
 ```
 
 Afterward, just run `composer update` from the root of your Joomla project.
+
+#### Version 1 versus version 2
+
+As of september 2014, a major refactor has been released. These versions are incompatible, since the ```#__taxonomies_relations``` table has been dropped in favor of the ancestors and descendents fields. If your ```#__taxonomies_taxonomies``` table contains these fields (and there are values for them), it is safe to assume that you are at version 2.
 
 ### jsymlinker
 
