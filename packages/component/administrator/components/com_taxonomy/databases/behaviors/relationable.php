@@ -105,9 +105,11 @@ class ComTaxonomyDatabaseBehaviorRelationable extends KDatabaseBehaviorAbstract
         $join_taxonomy = true;
 
         //Check if the from table is the same as the current table.
-        foreach($query->from as $from) {
-            if (strpos($from, $table->getBase()) === false) {
-                $join_taxonomy = false;
+        if($query->from) {
+            foreach ($query->from as $from) {
+                if (strpos($from, $table->getBase()) === false) {
+                    $join_taxonomy = false;
+                }
             }
         }
 
