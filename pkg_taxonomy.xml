@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <extension type="package" version="1.6">
     <name>Taxonomy</name>
-    <author>Dave Li</author>
+    <author>Moyo Web Architects</author>
     <creationDate>July 2013</creationDate>
     <packagename>taxonomy</packagename>
-    <version>2.0.1</version>
+    <version>2.0.2</version>
     <url>http://www.moyoweb.nl/</url>
-    <packager>Dave Li</packager>
+    <packager>Joachim van de Haterd</packager>
     <packagerurl>http://www.moyoweb.nl/</packagerurl>
     <description>Taxonomy Package</description>
     <files folder="packages">
