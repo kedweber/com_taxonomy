@@ -23,6 +23,8 @@
 
     <administration>
         <files folder="administrator/components/com_taxonomy">
+            <file>access.xml</file>
+            <file>config.xml</file>
             <file>dispatcher.php</file>
             <file>taxonomy.php</file>
 
