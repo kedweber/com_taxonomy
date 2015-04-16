@@ -8,7 +8,7 @@
     <license>http://www.gnu.org/licenses/gpl.html GNU/GPL v3</license>
     <authorEmail>info@moyoweb.nl</authorEmail>
     <authorUrl>www.moyoweb.nl</authorUrl>
-    <version>2.0.2</version>
+    <version>2.0.3</version>
     <description>Taxonomy</description>
 
     <install>
@@ -23,6 +23,8 @@
 
     <administration>
         <files folder="administrator/components/com_taxonomy">
+            <file>access.xml</file>
+            <file>config.xml</file>
             <file>dispatcher.php</file>
             <file>taxonomy.php</file>
 
